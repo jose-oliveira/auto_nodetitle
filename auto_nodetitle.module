@@ -32,10 +32,12 @@ function auto_nodetitle_form_alter($form_id, &$form) {
   }
   else if (isset($form['type']) && $form['type']['#value'] .'_node_form' == $form_id) {
     //this is a node form
-    $types = node_get_types();
-    //node id is only available for node updates
-    $title = ($form['#node']->nid) ? t('%type %node-id', array('%type' => $types[$form['type']['#value']], '%node-id' => $form['#node']->nid)) :
-                                     t('%type', array('%type' => $types[$form['type']['#value']]));
-    $form['title'] = array('#type' => 'value', '#value' => $title);
+    if (variable_get($form['type']['#value'] .'_auto_nodetitle', 0)) {
+      $types = node_get_types();
+      //node id is only available for node updates
+      $title = ($form['#node']->nid) ? t('%type %node-id', array('%type' => $types[$form['type']['#value']], '%node-id' => $form['#node']->nid)) :
+                                       t('%type', array('%type' => $types[$form['type']['#value']]));
+      $form['title'] = array('#type' => 'value', '#value' => $title);
+    }
   }
 }

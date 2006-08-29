@@ -1,0 +1,41 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * Allows hiding of the node title field and automatic title creation
+ */
+
+
+/**
+ * Implementation of hook_help().
+ */
+function auto_nodetitle_help($section) {
+  switch ($section) {
+    case 'admin/modules#description':
+      return t('Allows hiding of the node title field and automatic title creation.');
+  }
+}
+
+/*
+ * Implementation of hook_form_alter().
+ */
+function auto_nodetitle_form_alter($form_id, &$form) { 
+
+  if (isset($form['type']) && $form['type']['#value'] .'_node_settings' == $form_id) {
+
+    $form['submission'][$form['type']['#value'] .'_auto_nodetitle'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Automatically generate the node title and hide the node title field.'),
+      '#weight' => -5,
+    );
+  }
+  else if (isset($form['type']) && $form['type']['#value'] .'_node_form' == $form_id) {
+    //this is a node form
+    $types = node_get_types();
+    //node id is only available for node updates
+    $title = ($form['#node']->nid) ? t('%type %node-id', array('%type' => $types[$form['type']['#value']], '%node-id' => $form['#node']->nid)) :
+                                     t('%type', array('%type' => $types[$form['type']['#value']]));
+    $form['title'] = array('#type' => 'value', '#value' => $title);
+  }
+}

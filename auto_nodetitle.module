@@ -17,28 +17,75 @@ function auto_nodetitle_help($section) {
   }
 }
 
-/*
+/**
+ * Implementation of hook_perm()
+ */
+function auto_nodetitle_perm() {
+  return array('use PHP for title patterns');
+}
+
+/**
  * Implementation of hook_form_alter().
  */
 function auto_nodetitle_form_alter($form_id, &$form) { 
 
   if (isset($form['type']) && $form['type']['#value'] .'_node_settings' == $form_id) {
-
-    $form['submission'][$form['type']['#value'] .'_auto_nodetitle'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Automatically generate the node title and hide the node title field.'),
-      '#weight' => -5,
-      '#default_value' => variable_get($form['type']['#value'] .'_auto_nodetitle', 0),
-    );
+    auto_nodetitle_node_settings_form($form);
   }
-  else if (isset($form['type']) && $form['type']['#value'] .'_node_form' == $form_id) {
+  elseif (isset($form['type']) && $form['type']['#value'] .'_node_form' == $form_id) {
     //this is a node form
     if (variable_get($form['type']['#value'] .'_auto_nodetitle', 0)) {
       $types = node_get_types();
-      //node id is only available for node updates
-      $title = ($form['#node']->nid) ? t('%type %node-id', array('%type' => $types[$form['type']['#value']], '%node-id' => $form['#node']->nid)) :
-                                       t('%type', array('%type' => $types[$form['type']['#value']]));
+      $pattern = variable_get($form['type']['#value'] .'_title_pattern', 0) ;
+      if (trim($pattern)) {
+        $title = _auto_nodetitle_patternprocessor($pattern);
+      }
+      elseif ($form['#node']->nid) {
+        $title = t('%type %node-id', array('%type' => $types[$form['type']['#value']], '%node-id' => $form['#node']->nid));
+      }
+      else {
+        $title = t('%type', array('%type' => $types[$form['type']['#value']]));
+      }
+
       $form['title'] = array('#type' => 'value', '#value' => $title);
     }
   }
+}
+
+
+/**
+  * Helper function for hook_form_alter() renders the settings per node-type.
+  * @TODO: a re-evaluate PHP pattern on edit? option.
+  */
+function auto_nodetitle_node_settings_form(&$form) {
+  $form['auto_nodetitle'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Automatic title generation'),
+    '#weight' => -5,
+  );
+  
+  $form['auto_nodetitle'][$form['type']['#value'] .'_auto_nodetitle'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Automatically generate the node title and hide the node title field.'),
+    '#default_value' => variable_get($form['type']['#value'] .'_auto_nodetitle', 0),
+  );
+
+  if (user_access('use PHP for title patterns')) {
+    $form['auto_nodetitle'][$form['type']['#value'] .'_title_pattern'] = array(
+      '#type' => 'textarea',
+      '#title' => t('Pattern for the title'),
+      '#description' => t('Leave blank for default. Put PHP code here that returns a string, but make sure you surround code in &lt;?php and ?&gt;. This string will be used as title.'),
+      '#default_value' => variable_get($form['type']['#value'] .'_title_pattern', ''),
+    );
+  }
+}
+
+
+/**
+  * Helper function to generate the title according to the PHP code.
+  * Right now its only a wrapper, but if this is to be expanded, here is the place to be.
+  * @return a title string
+  */
+function _auto_nodetitle_patternprocessor($pattern) {
+  return drupal_eval($pattern);
 }

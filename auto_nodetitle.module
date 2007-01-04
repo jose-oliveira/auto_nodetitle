@@ -6,17 +6,6 @@
  * Allows hiding of the node title field and automatic title creation
  */
 
-
-/**
- * Implementation of hook_help().
- */
-function auto_nodetitle_help($section) {
-  switch ($section) {
-    case 'admin/modules#description':
-      return t('Allows hiding of the node title field and automatic title creation.');
-  }
-}
-
 /**
  * Implementation of hook_perm()
  */
@@ -29,24 +18,23 @@ function auto_nodetitle_perm() {
  */
 function auto_nodetitle_form_alter($form_id, &$form) { 
 
-  if (isset($form['type']) && $form['type']['#value'] .'_node_settings' == $form_id) {
+  if (isset($form['#node_type']) && 'node_type_form' == $form_id) {
     auto_nodetitle_node_settings_form($form);
   }
-  elseif (isset($form['type']) && $form['type']['#value'] .'_node_form' == $form_id) {
+  else if (isset($form['#node']) && $form['#node']->type .'_node_form' == $form_id) {
     //this is a node form
-    if (variable_get($form['type']['#value'] .'_auto_nodetitle', 0)) {
+    if (variable_get('auto_nodetitle_'. $form['#node']->type, 0)) {
       $types = node_get_types();
-      $pattern = variable_get($form['type']['#value'] .'_title_pattern', 0) ;
+      $pattern = variable_get('auto_nodetitle_pattern_'. $form['#node']->type, '');
       if (trim($pattern)) {
         $title = _auto_nodetitle_patternprocessor($pattern);
       }
-      elseif ($form['#node']->nid) {
-        $title = t('%type %node-id', array('%type' => $types[$form['type']['#value']], '%node-id' => $form['#node']->nid));
+      else if ($form['#node']->nid) {
+        $title = t('@type @node-id', array('@type' => $types[$form['#node']->type]->name, '@node-id' => $form['#node']->nid));
       }
       else {
-        $title = t('%type', array('%type' => $types[$form['type']['#value']]));
+        $title = t('@type', array('@type' => $types[$form['#node']->type]->name));
       }
-
       $form['title'] = array('#type' => 'value', '#value' => $title);
     }
   }
@@ -56,26 +44,27 @@ function auto_nodetitle_form_alter($form_id, &$form) {
 /**
   * Helper function for hook_form_alter() renders the settings per node-type.
   * @TODO: a re-evaluate PHP pattern on edit? option.
+  * 
+  * TODO:
   */
 function auto_nodetitle_node_settings_form(&$form) {
   $form['auto_nodetitle'] = array(
     '#type' => 'fieldset',
     '#title' => t('Automatic title generation'),
-    '#weight' => -5,
+    '#weight' => 0,
   );
-  
-  $form['auto_nodetitle'][$form['type']['#value'] .'_auto_nodetitle'] = array(
+  $form['auto_nodetitle']['auto_nodetitle'] = array(
     '#type' => 'checkbox',
     '#title' => t('Automatically generate the node title and hide the node title field.'),
-    '#default_value' => variable_get($form['type']['#value'] .'_auto_nodetitle', 0),
+    '#default_value' => variable_get('auto_nodetitle_'. $form['#node_type']->type, 0),
   );
 
   if (user_access('use PHP for title patterns')) {
-    $form['auto_nodetitle'][$form['type']['#value'] .'_title_pattern'] = array(
+    $form['auto_nodetitle']['auto_nodetitle_pattern'] = array(
       '#type' => 'textarea',
       '#title' => t('Pattern for the title'),
       '#description' => t('Leave blank for default. Put PHP code here that returns a string, but make sure you surround code in &lt;?php and ?&gt;. This string will be used as title.'),
-      '#default_value' => variable_get($form['type']['#value'] .'_title_pattern', ''),
+      '#default_value' => variable_get('auto_nodetitle_pattern_'. $form['#node_type']->type, ''),
     );
   }
 }

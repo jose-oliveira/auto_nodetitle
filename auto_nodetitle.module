@@ -29,6 +29,7 @@ function auto_nodetitle_form_alter($form_id, &$form) {
       if (trim($pattern)) {
         // the $form['#node'] is not complete yet, so we merge it with the post info
         $node = (object)array_merge((array)$form['#node'], $form['#post']);
+        $node->changed = time(); 
         $title = _auto_nodetitle_patternprocessor($pattern, $node);
       }
       else if ($form['#node']->nid) {

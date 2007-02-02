@@ -19,5 +19,5 @@ appropriate title.
 Installation 
 ------------
  * (optional) Download and install the token module.
- * Copy the module to your modules directory and activate it.
+ * Copy the module's directory to your modules directory and activate the module.
  * Activate it for some content-types at 'admin/settings/content-types'.

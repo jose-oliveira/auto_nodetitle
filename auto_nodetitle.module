@@ -21,7 +21,7 @@ function auto_nodetitle_form_alter($form_id, &$form) {
   if (isset($form['#node_type']) && 'node_type_form' == $form_id) {
     auto_nodetitle_node_settings_form($form);
   }
-  else if (isset($form['#node']) && $form['#node']->type .'_node_form' == $form_id) {
+  else if (isset($form['#node']) && isset($form['#post']) && $form['#node']->type .'_node_form' == $form_id) {
     //this is a node form    
     if (variable_get('ant_'. $form['#node']->type, 0)) {
       $types = node_get_types();
@@ -123,7 +123,7 @@ function auto_nodetitle_node_settings_form(&$form) {
   */
 function _auto_nodetitle_patternprocessor($output, $node) {
   if (module_exists('token')) {
-    $output = token_replace($output, 'node', $node);
+    $output = preg_replace('/[\t\n\r\0\x0B]/', '', strip_tags(token_replace($output, 'node', $node)));
   }
   if (variable_get('ant_php_'. $node->type, 0)) {
     $output = drupal_eval($output);

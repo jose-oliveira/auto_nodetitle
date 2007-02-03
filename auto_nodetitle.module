@@ -105,6 +105,8 @@ function auto_nodetitle_node_settings_form(&$form) {
     '#type' => 'fieldset',
     '#title' => t('Automatic title generation'),
     '#weight' => 0,
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
   );
   $form['auto_nodetitle']['ant'] = array(
     '#type' => 'checkbox',

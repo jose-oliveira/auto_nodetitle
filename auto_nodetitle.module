@@ -87,11 +87,11 @@ function auto_nodetitle_set_title(&$node) {
   * @return a title string
   */
 function _auto_nodetitle_patternprocessor($output, $node) {
-  if (module_exists('token')) {
-    $output = preg_replace('/[\t\n\r\0\x0B]/', '', strip_tags(token_replace($output, 'node', $node)));
-  }
   if (variable_get('ant_php_'. $node->type, 0)) {
     $output = drupal_eval($output);
+  }
+  if (module_exists('token')) {
+    $output = preg_replace('/[\t\n\r\0\x0B]/', '', strip_tags(token_replace($output, 'node', $node)));
   }
   return $output;
 }
@@ -143,7 +143,7 @@ function auto_nodetitle_node_settings_form(&$form) {
     $form['auto_nodetitle']['ant_php'] = array(
       '#type' => 'checkbox',
       '#title' => t('Evaluate PHP in pattern.'),
-      '#description' => t('Put PHP code above that prints your string, but make sure you surround code in &lt;?php and ?&gt;'),
+      '#description' => t('Put PHP code above that returns your string, but make sure you surround code in &lt;?php and ?&gt;'),
       '#default_value' => variable_get('ant_php_'. $form['#node_type']->type, ''),
     );
   }

@@ -28,7 +28,7 @@ function auto_nodetitle_form_alter($form_id, &$form) {
       $form['title']['#value'] = 'ant';
       $form['title']['#type'] = 'value';
       $form['title']['#required'] = FALSE;
-      $form['#validate']['auto_nodetitle_validate'] = array();
+      $form['#validate']['auto_nodetitle_form_validate'] = array();
     }
   }
 }
@@ -47,9 +47,9 @@ function auto_nodetitle_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
 }
 
 /*
- * Sets the node title during validation, so that the node preview can display it 
+ * Sets the node title during node form validation, so that the node preview can display it 
  */
-function auto_nodetitle_validate($form_id, $form_values, $form) {
+function auto_nodetitle_form_validate($form_id, $form_values, $form) {
   $node = (object)$form_values;
   auto_nodetitle_set_title($node);
   form_set_value($form['title'], $node->title);

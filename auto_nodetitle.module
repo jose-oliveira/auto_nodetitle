@@ -28,31 +28,23 @@ function auto_nodetitle_form_alter($form_id, &$form) {
       $form['title']['#value'] = 'ant';
       $form['title']['#type'] = 'value';
       $form['title']['#required'] = FALSE;
-      $form['#validate']['auto_nodetitle_form_validate'] = array();
     }
   }
 }
 
-
 /**
  * Implementation of hook_nodeapi().
  */
-function auto_nodetitle_nodeapi(&$node, $op, $teaser = NULL, $page = NULL) {
-  if ($op == 'submit' && variable_get('ant_'. $node->type, 0)) {
+function auto_nodetitle_nodeapi(&$node, $op, $form = NULL, $a4 = NULL) {
+  if ($op == 'validate' && variable_get('ant_'. $node->type, 0)) {
     /*
-     * Sets again the node title, as the node should be completed now.
+     * Sets the node title, as the node should be completed now.
+     * It's needed to set this through form_set_value() as changes to $node are not
+     * persistent during validation.
      */
     auto_nodetitle_set_title($node);
+    form_set_value($form['title'], $node->title);
   }
-}
-
-/*
- * Sets the node title during node form validation, so that the node preview can display it 
- */
-function auto_nodetitle_form_validate($form_id, $form_values, $form) {
-  $node = (object)$form_values;
-  auto_nodetitle_set_title($node);
-  form_set_value($form['title'], $node->title);
 }
 
 /*
@@ -93,6 +85,7 @@ function _auto_nodetitle_patternprocessor($output, $node) {
   if (module_exists('token')) {
     $output = preg_replace('/[\t\n\r\0\x0B]/', '', strip_tags(token_replace($output, 'node', $node)));
   }
+        
   // decode the HTML in the title -- we don't want Drupal to double-encode it
   $trans = array_flip(get_html_translation_table(HTML_SPECIALCHARS, ENT_QUOTES));
   $trans['&#039;'] = "'"; // PHP bug... encoding and decoding strings are different... this fixes

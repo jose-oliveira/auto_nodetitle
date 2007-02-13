@@ -1,0 +1,18 @@
+<?php
+// $Id$
+
+/**
+* Implementation of hook_install().
+*/
+function auto_nodetitle_install() {
+  db_query("UPDATE {system} SET weight = 5 WHERE name = 'auto_nodetitle'");
+}
+
+/**
+* make sure hooks are invoked after cck main hooks
+*/
+function auto_nodetitle_update_1() {
+  $ret = array();
+  $ret[] = update_sql("UPDATE {system} SET weight = 5 WHERE name = 'auto_nodetitle'");
+  return $ret;
+}

@@ -38,9 +38,12 @@ function auto_nodetitle_form_alter($form_id, &$form) {
 function auto_nodetitle_nodeapi(&$node, $op, $form = NULL, $a4 = NULL) {
   if ($op == 'validate' && variable_get('ant_'. $node->type, 0)) {
     /*
-     * Sets the node title, as the node should be completed now.
-     * It's needed to set this through form_set_value() as changes to $node are not
-     * persistent during validation.
+     * Sets the node title.
+     * We need to do this on validation because of two points: 
+     *     It's early engouh to have node previews working and 
+     *     it's late enough as CCK has already gone through the 'process form values' step 
+     * 
+     * As changes to $node are not persistent during validation, we use form_set_value()!
      */
     auto_nodetitle_set_title($node);
     form_set_value($form['title'], $node->title);
@@ -79,11 +82,14 @@ function auto_nodetitle_set_title(&$node) {
   * @return a title string
   */
 function _auto_nodetitle_patternprocessor($output, $node) {
+  if (module_exists('token')) {
+    $output = token_replace($output, 'node', $node);
+  }
   if (variable_get('ant_php_'. $node->type, 0)) {
     $output = drupal_eval($output);
   }
-  if (module_exists('token')) {
-    $output = preg_replace('/[\t\n\r\0\x0B]/', '', strip_tags(token_replace($output, 'node', $node)));
+  if (variable_get('ant_php_'. $node->type, 0) || module_exists('token')) {
+    $output = preg_replace('/[\t\n\r\0\x0B]/', '', strip_tags($output));
   }
 
   return $output;

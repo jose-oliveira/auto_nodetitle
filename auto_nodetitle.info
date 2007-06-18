@@ -1,4 +1,3 @@
 ; $Id.
 name = Automatic Nodetitles
 description = Allows hiding of the node title field and automatic title creation.
-version = "$Name$"

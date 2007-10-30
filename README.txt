@@ -19,9 +19,11 @@ Installation
 ------------
  * (optional) Download and install the token module.
  * Copy the module's directory to your modules directory and activate the module.
- * Activate it for some content-types at 'admin/settings/content-types'.
- 
- 
+ * For each content type you want to have an automatic title, click on the
+   "edit" link for it on 'admin/content/types'
+ * At the top of the content type edit form, there is a "Automatic title
+   generation" box allowing you to configure the details for the current content
+   type.
  
  
  Advanced Use: Combining tokens and PHP

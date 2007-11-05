@@ -1,4 +1,0 @@
-; $Id.
-name = Automatic Nodetitles
-description = Allows hiding of the content title field and automatic title creation.
-core = 6.x

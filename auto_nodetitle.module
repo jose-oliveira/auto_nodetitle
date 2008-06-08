@@ -88,7 +88,7 @@ function _auto_nodetitle_patternprocessor($output, $node) {
     $output = token_replace($output, 'node', $node);
   }
   if (variable_get('ant_php_'. $node->type, 0)) {
-    $output = drupal_eval($output);
+    $output = auto_nodetitle_eval($output, $node);
   }
   if (variable_get('ant_php_'. $node->type, 0) || module_exists('token')) {
     $output = preg_replace('/[\t\n\r\0\x0B]/', '', strip_tags($output));
@@ -149,7 +149,7 @@ function auto_nodetitle_node_settings_form(&$form) {
     $form['auto_nodetitle']['ant_php'] = array(
       '#type' => 'checkbox',
       '#title' => t('Evaluate PHP in pattern.'),
-      '#description' => t('Put PHP code above that returns your string, but make sure you surround code in &lt;?php and ?&gt;'),
+      '#description' => t('Put PHP code above that returns your string, but make sure you surround code in &lt;?php and ?&gt;. Note that $node is available and can be used by your code.'),
       '#default_value' => variable_get('ant_php_'. $form['#node_type']->type, ''),
     );
   }
@@ -167,4 +167,15 @@ function auto_nodetitle_node_settings_form(&$form) {
  */ 
 function auto_nodetitle_get_setting($type) {
   return variable_get('ant_'. $type, AUTO_NODETITLE_DISABLED);
+}
+
+/**
+ * Evaluates php code and passes $node to it
+ */
+function auto_nodetitle_eval($code, $node) {
+  ob_start();
+  print eval('?>'. $code);
+  $output = ob_get_contents();
+  ob_end_clean();
+  return $output;
 }

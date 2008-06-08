@@ -26,6 +26,17 @@ Installation
    type.
  
  
+ 
+ 
+ Advanced Use: PHP Code
+------------------------
+ You can access $node from your php code. Look at this simple example, which just adds the node's
+ author as title:
+ 
+<?php return "Author: $node->name"; ?>
+
+ 
+ 
  Advanced Use: Combining tokens and PHP
  ---------------------------------------
  
@@ -41,20 +52,7 @@ Installation
     return $token;
   } 
 ?>
- 
+
  So if the text of the CCK textfield [field_testtext-raw] isn't empty it will be used as title.
  Otherwise the node type will be used.
- 
- 
- Advanced Use: Accessing $node from PHP
- ----------------------------------------
- If you prefer to not use the token module, the best way to access $node is:
- 
-<?php
-  global $form_values;
-  $node = (array)$form_values;
-..
-?>
-However, the node does just contain the form_values as submitted by the user. Any data
-processing the modules might do with their fields will be done later.
-For sure it's easier to go with the token module!
+

@@ -27,6 +27,16 @@ Installation
  
  
  
+ 
+ Advanced Use: PHP Code
+------------------------
+ You can access $node from your php code. Look at this simple example, which just adds the node's
+ author as title:
+ 
+<?php return "Author: $node->name"; ?>
+
+ 
+ 
  Advanced Use: Combining tokens and PHP
  ---------------------------------------
  
@@ -45,3 +55,4 @@ Installation
 
  So if the text of the CCK textfield [field_testtext-raw] isn't empty it will be used as title.
  Otherwise the node type will be used.
+

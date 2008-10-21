@@ -1,0 +1,77 @@
+# $Id$
+#
+# Hungarian translation of Drupal module auto_nodetitle
+# Copyright Balogh Zoltán <zly@bernathegyi.info>
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Drupal module auto_nodetitle\n"
+"POT-Creation-Date: 2008-10-01 14:45+0200\n"
+"PO-Revision-Date: 2008-10-15 15:27+0100\n"
+"Last-Translator: Balogh Zoltán <zly@bernathegyi.info>\n"
+"Language-Team: Drupal fordítási csapat <forditas@drupal.hu>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n!=1);\n"
+
+#: ../auto_nodetitle.module:68
+msgid "@type @node-id"
+msgstr "@type @node-id"
+
+#: ../auto_nodetitle.module:71
+msgid "@type"
+msgstr "@type"
+
+#: ../auto_nodetitle.module:99
+msgid "Automatic title generation"
+msgstr "Automatikus cím létrehozás"
+
+#: ../auto_nodetitle.module:108
+msgid "Disabled"
+msgstr "Tiltott"
+
+#: ../auto_nodetitle.module:109
+msgid "Automatically generate the title and hide the title field"
+msgstr "Automatikusan generálja a címet, és elrejti a cím mezőt"
+
+#: ../auto_nodetitle.module:110
+msgid "Automatically generate the title if the title field is left empty"
+msgstr "Automatikusan generálja a címet, ha a cím mező üresen marad"
+
+#: ../auto_nodetitle.module:116
+msgid "Leave blank for using the per default generated title. Otherwise this string will be used as title."
+msgstr "Az alapértelmezés szerinti generált címhez üresen kell hagyni. Egyébként a megadott karaktersorozat lesz felhasználva címnek."
+
+#: ../auto_nodetitle.module:118
+msgid "Use the syntax [token] if you want to insert a replacement pattern."
+msgstr "[token] formátumban helyettesítési minta is használható."
+
+#: ../auto_nodetitle.module:122
+msgid "Pattern for the title"
+msgstr "Minta a címnek"
+
+#: ../auto_nodetitle.module:130
+msgid "Replacement patterns"
+msgstr "Helyettesítési minták"
+
+#: ../auto_nodetitle.module:134
+msgid "Prefer raw-text replacements for text to avoid problems with HTML entities!"
+msgstr "A HTML entitás problémák miatt a szövegben a raw-text helyettesítők részesülnek előnyben!"
+
+#: ../auto_nodetitle.module:143
+msgid "Evaluate PHP in pattern."
+msgstr "PHP kód kiértékelése a mintában."
+
+#: ../auto_nodetitle.module:144
+msgid "Put PHP code above that returns your string, but make sure you surround code in &lt;?php and ?&gt;. Note that $node is available and can be used by your code."
+msgstr "A fenti mezőbe PHP kód illeszthető, mely a kívánt karaktersorozatot adja vissza, de körül kell zárni azt a &lt;?php és a ?&gt; jelekkel. A $node értéke elérhető és használható a kódban."
+
+#: ../auto_nodetitle.info:0
+msgid "Automatic Nodetitles"
+msgstr "Automatic Nodetitles"
+
+#: ../auto_nodetitle.info:0
+msgid "Allows hiding of the content title field and automatic title creation."
+msgstr "Lehetővé teszi a cím mező elrejtését és a cím automatikus létrehozását."
+

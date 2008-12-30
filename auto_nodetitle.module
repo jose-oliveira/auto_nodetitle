@@ -5,7 +5,7 @@
  * @file
  * Allows hiding of the node title field and automatic title creation
  */
- 
+
 define('AUTO_NODETITLE_DISABLED', 0);
 define('AUTO_NODETITLE_ENABLED', 1);
 define('AUTO_NODETITLE_OPTIONAL', 2);
@@ -26,7 +26,7 @@ function auto_nodetitle_form_alter($form_id, &$form) {
     auto_nodetitle_node_settings_form($form);
   }
   else if (isset($form['#node']) && isset($form['#post']) && $form['#node']->type .'_node_form' == $form_id) {
-    //this is a node form    
+    //this is a node form
     if (auto_nodetitle_get_setting($form['#node']->type) == AUTO_NODETITLE_ENABLED) {
       // we will autogenerate the title later, just hide the title field in the meanwhile
       $form['title']['#value'] = 'ant';
@@ -42,21 +42,20 @@ function auto_nodetitle_form_alter($form_id, &$form) {
 
 /**
  * Implementation of hook_nodeapi().
+ *
+ * Sets the node title.
+ * To let node previews work this is also done during node validation.
  */
 function auto_nodetitle_nodeapi(&$node, $op, $form = NULL, $a4 = NULL) {
-  if ($op == 'validate') {
-    if ((auto_nodetitle_get_setting($node->type) == AUTO_NODETITLE_ENABLED) || ((auto_nodetitle_get_setting($node->type) == AUTO_NODETITLE_OPTIONAL) && empty($node->title))) {
-      /*
-       * Sets the node title.
-       * We need to do this on validation because of two points: 
-       *     It's early engouh to have node previews working and 
-       *     it's late enough as CCK has already gone through the 'process form values' step 
-       * 
-       * As changes to $node are not persistent during validation, we use form_set_value()!
-       */
+  if ($op == 'validate' && $form['#post']['op'] == t('Preview')) {
+    if (($setting = auto_nodetitle_get_setting($node->type)) && !($setting == AUTO_NODETITLE_OPTIONAL && !empty($node->title))) {
+      // As changes to $node are not persistent during validation, we use form_set_value()!
       auto_nodetitle_set_title($node);
       form_set_value($form['title'], $node->title);
     }
+  }
+  else if ($op == 'submit' && ($setting = auto_nodetitle_get_setting($node->type)) && !($setting == AUTO_NODETITLE_OPTIONAL && !empty($node->title))) {
+    auto_nodetitle_set_title($node);
   }
 }
 
@@ -67,7 +66,7 @@ function auto_nodetitle_set_title(&$node) {
   $types = node_get_types();
   $pattern = variable_get('ant_pattern_'. $node->type, '');
   if (trim($pattern)) {
-    $node->changed = time(); 
+    $node->changed = time();
     $node->title = _auto_nodetitle_patternprocessor($pattern, $node);
   }
   else if ($node->nid) {
@@ -120,7 +119,7 @@ function auto_nodetitle_node_settings_form(&$form) {
   );
 
   if (module_exists('token') || user_access('use PHP for title patterns')) {
-    
+
     $description = t('Leave blank for using the per default generated title. Otherwise this string will be used as title.');
     if (module_exists('token')) {
       $description .= ' '. t('Use the syntax [token] if you want to insert a replacement pattern.');
@@ -132,7 +131,7 @@ function auto_nodetitle_node_settings_form(&$form) {
       '#default_value' => variable_get('ant_pattern_'. $form['#node_type']->type, ''),
     );
   }
-  
+
   if (module_exists('token')) {
     $form['auto_nodetitle']['token_help'] = array(
       '#title' => t('Replacement patterns'),
@@ -163,8 +162,8 @@ function auto_nodetitle_node_settings_form(&$form) {
 }
 
 /**
- * Gets the auto node title setting associated with the given content type. 
- */ 
+ * Gets the auto node title setting associated with the given content type.
+ */
 function auto_nodetitle_get_setting($type) {
   return variable_get('ant_'. $type, AUTO_NODETITLE_DISABLED);
 }

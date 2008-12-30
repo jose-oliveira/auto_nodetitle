@@ -159,10 +159,9 @@ function auto_nodetitle_node_settings_form(&$form) {
     );
   }
   else {
-    // if user doesn't have PHP permission, their submission will reset PHP evaluation
     $form['auto_nodetitle']['auto_nodetitle_php'] = array(
       '#type' => 'value',
-      '#value' => 0,
+      '#value' => variable_get('ant_php_'. $form['#node_type']->type, ''),
     );
   }
 }
@@ -183,4 +182,27 @@ function auto_nodetitle_eval($code, $node) {
   $output = ob_get_contents();
   ob_end_clean();
   return $output;
+}
+
+/**
+ * Implementation of hook_node_type().
+ */
+function auto_nodetitle_node_type($op, $info) {
+  switch ($op) {
+    case 'delete':
+      variable_del('ant_'. $info->type);
+      variable_del('ant_pattern_'. $info->type);
+      variable_del('ant_php_'. $info->type);
+      break;
+    case 'update':
+      if (!empty($info->old_type) && $info->old_type != $info->type) {
+        variable_set('ant_'. $info->type, auto_nodetitle_get_setting($info->old_type));
+        variable_set('ant_pattern_'. $info->type, variable_get('ant_pattern_'. $info->old_type, ''));
+        variable_set('ant_php_'. $info->type, variable_get('ant_php_'. $info->old_type, ''));
+        variable_del('ant_'. $info->old_type);
+        variable_del('ant_pattern_'. $info->old_type);
+        variable_del('ant_php_'. $info->old_type);
+      }
+      break;
+  }
 }

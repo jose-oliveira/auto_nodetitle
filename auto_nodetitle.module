@@ -42,26 +42,39 @@ function auto_nodetitle_form_alter(&$form, $form_state, $form_id) {
   }
 }
 
-/*
- * Gets the node object, modifies the title, and updates the node in the form_state
+/**
+ * Makes sure the node preview is shown right.
+ * It gets the node object, modifies the title, and updates the node in the form_state.
  */
 function auto_nodetitle_node_form_submit($form, &$form_state) {
-  $setting = auto_nodetitle_get_setting($form_state['values']['type']);
-  if ($setting == AUTO_NODETITLE_ENABLED || ($setting == AUTO_NODETITLE_OPTIONAL && empty($form_state['values']['title']))) {
-    $node = node_submit($form_state['values']);
-    auto_nodetitle_set_title($node);
-    $form_state['values'] = (array)$node;
+  // Only do something, if the user clicked the preview button.
+  if (isset($form_state['clicked_button']['#submit']) && in_array('node_form_build_preview', $form_state['clicked_button']['#submit'])) {
+    $setting = auto_nodetitle_get_setting($form_state['values']['type']);
+    if ($setting == AUTO_NODETITLE_ENABLED || ($setting == AUTO_NODETITLE_OPTIONAL && empty($form_state['values']['title']))) {
+      $node = node_submit($form_state['values']);
+      auto_nodetitle_set_title($node);
+      $form_state['values'] = (array)$node;
+    }
   }
 }
 
-/*
+/**
+ * Implementation of hook_nodeapi().
+ */
+function auto_nodetitle_nodeapi($node, $op) {
+  if ($op == 'presave' && ($setting = auto_nodetitle_get_setting($node->type)) && !($setting == AUTO_NODETITLE_OPTIONAL && !empty($node->title))) {
+    auto_nodetitle_set_title($node);
+  }
+}
+
+/**
  * Sets the automatically generated nodetitle for the node
  */
 function auto_nodetitle_set_title(&$node) {
   $types = node_get_types();
   $pattern = variable_get('ant_pattern_'. $node->type, '');
   if (trim($pattern)) {
-    $node->changed = time(); 
+    $node->changed = time();
     $node->title = _auto_nodetitle_patternprocessor($pattern, $node);
   }
   else if ($node->nid) {

@@ -78,6 +78,34 @@ function auto_nodetitle_set_title(&$node) {
 }
 
 /**
+* Implementation of hook_node_operations().
+*/
+function auto_nodetitle_node_operations() {
+  $operations = array(
+    'nodetitle_update' => array(
+      'label' => t('Update automatic Nodetitles'),
+      'callback' => 'auto_nodetitle_operations_update',
+    ),
+  );
+  return $operations;
+}
+
+/**
+* Callback function for updating node titles.
+*/
+function auto_nodetitle_operations_update($nodes) {
+  foreach ($nodes as $nid) {
+    $node = node_load($nid);
+    $nodetitle_save = $node->title;
+    auto_nodetitle_set_title($node);
+    if ($node->title != $nodetitle_save) {
+      //only save if the title has actually changed
+      node_save($node);
+    }
+  }
+}
+
+/**
   * Helper function to generate the title according to the PHP code.
   * Right now its only a wrapper, but if this is to be expanded, here is the place to be.
   * @return a title string

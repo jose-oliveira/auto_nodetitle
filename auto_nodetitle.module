@@ -47,16 +47,21 @@ function auto_nodetitle_form_alter($form_id, &$form) {
  * To let node previews work this is also done during node validation.
  */
 function auto_nodetitle_nodeapi(&$node, $op, $form = NULL, $a4 = NULL) {
-  if ($op == 'validate' && $form['#post']['op'] == t('Preview')) {
-    if (($setting = auto_nodetitle_get_setting($node->type)) && !($setting == AUTO_NODETITLE_OPTIONAL && !empty($node->title))) {
-      // As changes to $node are not persistent during validation, we use form_set_value()!
-      auto_nodetitle_set_title($node);
-      form_set_value($form['title'], $node->title);
-    }
+  if ($op == 'validate' && $form['#post']['op'] == t('Preview') && auto_nodetitle_is_needed($node)) {
+    // As changes to $node are not persistent during validation, we use form_set_value()!
+    auto_nodetitle_set_title($node);
+    form_set_value($form['title'], $node->title);
   }
-  else if ($op == 'submit' && ($setting = auto_nodetitle_get_setting($node->type)) && !($setting == AUTO_NODETITLE_OPTIONAL && !empty($node->title))) {
+  else if ($op == 'submit' && auto_nodetitle_is_needed($node)) {
     auto_nodetitle_set_title($node);
   }
+}
+
+/**
+ * Returns whether the auto nodetitle has to be set.
+ */
+function auto_nodetitle_is_needed($node) {
+  return empty($node->auto_nodetitle_applied) && ($setting = auto_nodetitle_get_setting($node->type)) && !($setting == AUTO_NODETITLE_OPTIONAL && !empty($node->title));
 }
 
 /*
@@ -75,6 +80,8 @@ function auto_nodetitle_set_title(&$node) {
   else {
     $node->title = t('@type', array('@type' => $types[$node->type]->name));
   }
+  // With that flag we ensure we don't apply the title two times to the same node.
+  $node->auto_nodetitle_applied = TRUE;
 }
 
 /**
@@ -83,7 +90,7 @@ function auto_nodetitle_set_title(&$node) {
 function auto_nodetitle_node_operations() {
   $operations = array(
     'nodetitle_update' => array(
-      'label' => t('Update automatic Nodetitles'),
+      'label' => t('Update automatic nodetitles'),
       'callback' => 'auto_nodetitle_operations_update',
     ),
   );
@@ -96,11 +103,13 @@ function auto_nodetitle_node_operations() {
 function auto_nodetitle_operations_update($nodes) {
   foreach ($nodes as $nid) {
     $node = node_load($nid);
-    $nodetitle_save = $node->title;
-    auto_nodetitle_set_title($node);
-    if ($node->title != $nodetitle_save) {
-      //only save if the title has actually changed
-      node_save($node);
+    if ($node && auto_nodetitle_is_needed($node)) {
+      $previous_title = $node->title;
+      auto_nodetitle_set_title($node);
+      // Only save if the title has actually changed.
+      if ($node->title != $previous_title) {
+        node_save($node);
+      }
     }
   }
 }

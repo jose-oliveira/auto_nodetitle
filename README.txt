@@ -25,8 +25,7 @@ Installation
    generation" box allowing you to configure the details for the current content
    type.
  
- 
- 
+
  
  Advanced Use: PHP Code
 ------------------------
@@ -56,3 +55,13 @@ Installation
  So if the text of the CCK textfield [field_testtext-raw] isn't empty it will be used as title.
  Otherwise the node type will be used.
 
+ 
+ 
+ Updating nodetitles from existing nodes
+ ---------------------------------------
+ If you set the nodetitle to be auto generated for some content type, existing nodes
+ are not affected. You can update existing nodes by going to 'admin/content/node',
+ then filter for your content type, mark some nodes and choose the "Update option" 
+ "Update automatic nodetitles". 
+ 
+ 

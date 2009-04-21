@@ -61,7 +61,7 @@ function auto_nodetitle_node_form_submit($form, &$form_state) {
 /**
  * Implementation of hook_nodeapi().
  */
-function auto_nodetitle_nodeapi($node, $op) {
+function auto_nodetitle_nodeapi(&$node, $op) {
   if ($op == 'presave' && auto_nodetitle_is_needed($node)) {
     auto_nodetitle_set_title($node);
   }

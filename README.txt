@@ -40,10 +40,13 @@ Installation
  ---------------------------------------
  
  You can combine php evalution with the token module, because tokens are replaced first.
+ However be aware to don't use this with any textual values provided by users as this would
+ open a security hole. If you are in doubt, don't combine tokens with php evaluation.
+ 
  Here is an example:
  
 <?php
-  $token = '[field_testtext-raw]';
+  $token = '[field_testnumber]';
   if (empty($token)) {
     return '[type]';
   }
@@ -52,7 +55,7 @@ Installation
   } 
 ?>
 
- So if the text of the CCK textfield [field_testtext-raw] isn't empty it will be used as title.
+ So if the text of the CCK number [field_testnumber] isn't empty it will be used as title.
  Otherwise the node type will be used.
 
  

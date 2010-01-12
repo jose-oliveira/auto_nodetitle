@@ -146,16 +146,17 @@ function _auto_nodetitle_patternprocessor($output, $node) {
   * Helper function for hook_form_alter() renders the settings per node-type.
   */
 function auto_nodetitle_node_settings_form(&$form) {
+  $default_value = auto_nodetitle_get_setting($form['#node_type']->type);
   $form['auto_nodetitle'] = array(
     '#type' => 'fieldset',
     '#title' => t('Automatic title generation'),
     '#weight' => 0,
     '#collapsible' => TRUE,
-    '#collapsed' => TRUE,
+    '#collapsed' => !$default_value,
   );
   $form['auto_nodetitle']['ant'] = array(
     '#type' => 'radios',
-    '#default_value' => auto_nodetitle_get_setting($form['#node_type']->type),
+    '#default_value' => $default_value,
     '#options' => array(
       t('Disabled'),
       t('Automatically generate the title and hide the title field'),

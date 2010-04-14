@@ -11,22 +11,27 @@ define('AUTO_NODETITLE_ENABLED', 1);
 define('AUTO_NODETITLE_OPTIONAL', 2);
 
 /**
- * Implementation of hook_perm()
+ * Implements hook_permission().
  */
-function auto_nodetitle_perm() {
-  return array('use PHP for title patterns');
+function auto_nodetitle_permission() {
+  return array(
+    'Use PHP for title patterns' => array(
+      'title' => t('Use PHP for title patterns'),
+      'description' => t('Use PHP for title patterns.'),
+    )
+  );
 }
 
 /**
- * Implementation of hook_form_alter().
+ * Implements hook_form_alter().
  */
-function auto_nodetitle_form_alter(&$form, $form_state, $form_id) {
-
+function auto_nodetitle_form_alter(&$form, &$form_state, $form_id) {
+  // If we're editing a content type
   if (isset($form['#node_type']) && 'node_type_form' == $form_id) {
     auto_nodetitle_node_settings_form($form);
   }
-  else if (isset($form['#node']) && isset($form['#method']) && $form['#node']->type .'_node_form' == $form_id) {
-    //this is a node form
+  // If we're editing a node
+  if (!empty($form['#node_edit_form'])) {
     if (auto_nodetitle_get_setting($form['#node']->type) == AUTO_NODETITLE_ENABLED) {
       // we will autogenerate the title later, just hide the title field in the meanwhile
       $form['title']['#value'] = 'ant';
@@ -34,7 +39,7 @@ function auto_nodetitle_form_alter(&$form, $form_state, $form_id) {
       $form['title']['#required'] = FALSE;
       $form['#submit'][] = 'auto_nodetitle_node_form_submit';
     }
-    else if (auto_nodetitle_get_setting($form['#node']->type) == AUTO_NODETITLE_OPTIONAL) {
+    elseif (auto_nodetitle_get_setting($form['#node']->type) == AUTO_NODETITLE_OPTIONAL) {
       // we will make the title optional
       $form['title']['#required'] = FALSE;
       $form['#submit'][] = 'auto_nodetitle_node_form_submit';
@@ -59,10 +64,10 @@ function auto_nodetitle_node_form_submit($form, &$form_state) {
 }
 
 /**
- * Implementation of hook_nodeapi().
+ * Implements hook_node_presave().
  */
-function auto_nodetitle_nodeapi(&$node, $op) {
-  if ($op == 'presave' && auto_nodetitle_is_needed($node)) {
+function auto_nodetitle_node_presave($node) {
+  if (auto_nodetitle_is_needed($node)) {
     auto_nodetitle_set_title($node);
   }
 }
@@ -78,13 +83,13 @@ function auto_nodetitle_is_needed($node) {
  * Sets the automatically generated nodetitle for the node
  */
 function auto_nodetitle_set_title(&$node) {
-  $types = node_get_types();
-  $pattern = variable_get('ant_pattern_'. $node->type, '');
+  $types = node_type_get_types();
+  $pattern = variable_get('ant_pattern_' . $node->type, '');
   if (trim($pattern)) {
-    $node->changed = time();
+    $node->changed = REQUEST_TIME;
     $node->title = _auto_nodetitle_patternprocessor($pattern, $node);
   }
-  else if ($node->nid) {
+  elseif ($node->nid) {
     $node->title = t('@type @node-id', array('@type' => $types[$node->type]->name, '@node-id' => $node->nid));
   }
   else {
@@ -95,7 +100,7 @@ function auto_nodetitle_set_title(&$node) {
 }
 
 /**
- * Implementation of hook_node_operations().
+ * Implements hook_node_operations().
  */
 function auto_nodetitle_node_operations() {
   $operations = array(
@@ -130,15 +135,14 @@ function auto_nodetitle_operations_update($nodes) {
   * @return a title string
   */
 function _auto_nodetitle_patternprocessor($output, $node) {
-  if (module_exists('token')) {
-    $output = token_replace($output, 'node', $node);
-  }
-  if (variable_get('ant_php_'. $node->type, 0)) {
+  // Replace tokens
+  $output = token_replace($output, array('node' => $node));
+  // Evalute PHP
+  if (variable_get('ant_php_' . $node->type, 0)) {
     $output = auto_nodetitle_eval($output, $node);
   }
-  if (variable_get('ant_php_'. $node->type, 0) || module_exists('token')) {
-    $output = preg_replace('/[\t\n\r\0\x0B]/', '', strip_tags($output));
-  }
+  // Strip tags
+  $output = preg_replace('/[\t\n\r\0\x0B]/', '', strip_tags($output));
   return $output;
 }
 
@@ -153,7 +157,14 @@ function auto_nodetitle_node_settings_form(&$form) {
     '#weight' => 0,
     '#collapsible' => TRUE,
     '#collapsed' => !$default_value,
+    '#group' => 'additional_settings',
+    '#attached' => array(
+        'js' => array(
+          'auto-nodetitle' => drupal_get_path('module', 'auto_nodetitle') . '/auto_nodetitle.js',
+        ),
+      ),
   );
+
   $form['auto_nodetitle']['ant'] = array(
     '#type' => 'radios',
     '#default_value' => $default_value,
@@ -164,44 +175,39 @@ function auto_nodetitle_node_settings_form(&$form) {
     )
   );
 
-  if (module_exists('token') || user_access('use PHP for title patterns')) {
+  $form['auto_nodetitle']['ant_pattern'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Pattern for the title'),
+    '#description' => t('Leave blank for using the per default generated title. Otherwise this string will be used as title. Use the syntax [token] if you want to insert a replacement pattern.'),
+    '#default_value' => variable_get('ant_pattern_' . $form['#node_type']->type, ''),
+  );
 
-    $description = t('Leave blank for using the per default generated title. Otherwise this string will be used as title.');
-    if (module_exists('token')) {
-      $description .= ' '. t('Use the syntax [token] if you want to insert a replacement pattern.');
-    }
-    $form['auto_nodetitle']['ant_pattern'] = array(
-      '#type' => 'textarea',
-      '#title' => t('Pattern for the title'),
-      '#description' => $description,
-      '#default_value' => variable_get('ant_pattern_'. $form['#node_type']->type, ''),
-    );
+  // Display the list of available placeholders
+  $tokens = token_info();
+  $tokenlist = "<dl>\n";
+  foreach ($tokens['tokens']['node'] as $key => $info) {
+    $tokenlist .= '<dt>[node:' . check_plain($key) . ']</dt>';
+    $tokenlist .= '<dd>' . check_plain($info['description']) . '</dd>';
   }
+  $tokenlist .= "</dl>\n";
+  $form['auto_nodetitle']['token_help'] = array(
+    '#type' => 'item',
+    '#title' => t('Replacement patterns'),
+    '#markup' => $tokenlist,
+  );
 
-  if (module_exists('token')) {
-    $form['auto_nodetitle']['token_help'] = array(
-      '#title' => t('Replacement patterns'),
-      '#type' => 'fieldset',
-      '#collapsible' => TRUE,
-      '#collapsed' => TRUE,
-      '#description' => t('Prefer raw-text replacements for text to avoid problems with HTML entities!'),
-    );
-    $form['auto_nodetitle']['token_help']['help'] = array(
-      '#value' => theme('token_help', 'node'),
-    );
-  }
   if (user_access('use PHP for title patterns')) {
     $form['auto_nodetitle']['ant_php'] = array(
       '#type' => 'checkbox',
       '#title' => t('Evaluate PHP in pattern.'),
       '#description' => t('Put PHP code above that returns your string, but make sure you surround code in &lt;?php and ?&gt;. Note that $node is available and can be used by your code.'),
-      '#default_value' => variable_get('ant_php_'. $form['#node_type']->type, ''),
+      '#default_value' => variable_get('ant_php_' . $form['#node_type']->type, ''),
     );
   }
   else {
     $form['auto_nodetitle']['auto_nodetitle_php'] = array(
       '#type' => 'value',
-      '#value' => variable_get('ant_php_'. $form['#node_type']->type, ''),
+      '#value' => variable_get('ant_php_' . $form['#node_type']->type, ''),
     );
   }
 }
@@ -210,7 +216,7 @@ function auto_nodetitle_node_settings_form(&$form) {
  * Gets the auto node title setting associated with the given content type.
  */
 function auto_nodetitle_get_setting($type) {
-  return variable_get('ant_'. $type, AUTO_NODETITLE_DISABLED);
+  return variable_get('ant_' . $type, AUTO_NODETITLE_DISABLED);
 }
 
 /**
@@ -218,30 +224,30 @@ function auto_nodetitle_get_setting($type) {
  */
 function auto_nodetitle_eval($code, $node) {
   ob_start();
-  print eval('?>'. $code);
+  print eval('?>' . $code);
   $output = ob_get_contents();
   ob_end_clean();
   return $output;
 }
 
 /**
- * Implementation of hook_node_type().
+ * Implements hook_node_type().
  */
 function auto_nodetitle_node_type($op, $info) {
   switch ($op) {
     case 'delete':
-      variable_del('ant_'. $info->type);
-      variable_del('ant_pattern_'. $info->type);
-      variable_del('ant_php_'. $info->type);
+      variable_del('ant_' . $info->type);
+      variable_del('ant_pattern_' . $info->type);
+      variable_del('ant_php_' . $info->type);
       break;
     case 'update':
       if (!empty($info->old_type) && $info->old_type != $info->type) {
-        variable_set('ant_'. $info->type, auto_nodetitle_get_setting($info->old_type));
-        variable_set('ant_pattern_'. $info->type, variable_get('ant_pattern_'. $info->old_type, ''));
-        variable_set('ant_php_'. $info->type, variable_get('ant_php_'. $info->old_type, ''));
-        variable_del('ant_'. $info->old_type);
-        variable_del('ant_pattern_'. $info->old_type);
-        variable_del('ant_php_'. $info->old_type);
+        variable_set('ant_' . $info->type, auto_nodetitle_get_setting($info->old_type));
+        variable_set('ant_pattern_' . $info->type, variable_get('ant_pattern_' . $info->old_type, ''));
+        variable_set('ant_php_' . $info->type, variable_get('ant_php_' . $info->old_type, ''));
+        variable_del('ant_' . $info->old_type);
+        variable_del('ant_pattern_' . $info->old_type);
+        variable_del('ant_php_' . $info->old_type);
       }
       break;
   }

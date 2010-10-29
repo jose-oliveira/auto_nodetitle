@@ -169,6 +169,14 @@ function auto_nodetitle_node_settings_form(&$form) {
       '#description' => $description,
       '#default_value' => variable_get('ant_pattern_'. $form['#node_type']->type, ''),
     );
+
+    // Don't allow editing of the pattern if PHP is used, but the users lacks
+    // permission for PHP.
+    if (variable_get('ant_php_' . $form['#node_type']->type, '') && !user_access('use PHP for title patterns')) {
+      $form['auto_nodetitle']['ant_pattern']['#value'] = $form['auto_nodetitle']['ant_pattern']['#default_value'];
+      $form['auto_nodetitle']['ant_pattern']['#disabled'] = TRUE;
+      $form['auto_nodetitle']['ant_pattern']['#description'] = t('You are not allow the configure the pattern for the title, as you lack the %permission permission.', array('%permission' => t('Use PHP for title patterns')));
+    }
   }
 
   if (module_exists('token')) {

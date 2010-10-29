@@ -166,29 +166,27 @@ function auto_nodetitle_form_node_type_form_alter(&$form, &$form_state) {
       t('Automatically generate the title if the title field is left empty'),
     )
   );
+  $form['auto_nodetitle']['ant_pattern'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Pattern for the title'),
+    '#description' => t('Leave blank for using the per default generated title. Otherwise this string will be used as title. Use the syntax [token] if you want to insert a replacement pattern.'),
+    '#default_value' => variable_get('ant_pattern_' . $form['#node_type']->type, ''),
+  );
   // Don't allow editing of the pattern if PHP is used, but the users lacks
   // permission for PHP.
-  if (!variable_get('ant_php_' . $form['#node_type']->type, '') || user_access('use PHP for title patterns')) {
-    $form['auto_nodetitle']['ant_pattern'] = array(
-      '#type' => 'textarea',
-      '#title' => t('Pattern for the title'),
-      '#description' => t('Leave blank for using the per default generated title. Otherwise this string will be used as title. Use the syntax [token] if you want to insert a replacement pattern.'),
-      '#default_value' => variable_get('ant_pattern_' . $form['#node_type']->type, ''),
-    );
+  if (variable_get('ant_php_' . $form['#node_type']->type, '') && !user_access('use PHP for title patterns')) {
+    $form['auto_nodetitle']['ant_pattern']['#disabled'] = TRUE;
+    $form['auto_nodetitle']['ant_pattern']['#description'] = t('You are not allow the configure the pattern for the title, as you lack the %permission permission.', array('%permission' => t('Use PHP for title patterns')));
+  }
 
-    // Display the list of available placeholders if token module is installed.
-    if (module_exists('token')) {
-      $form['auto_nodetitle']['token_help'] = array(
-        '#theme' => 'token_tree',
-        '#token_types' => array('node'),
-      );
-    }
+  // Display the list of available placeholders if token module is installed.
+  if (module_exists('token')) {
+    $form['auto_nodetitle']['token_help'] = array(
+      '#theme' => 'token_tree',
+      '#token_types' => array('node'),
+    );
   }
-  else {
-    $form['auto_nodetitle']['text']['#prefix'] = '<p>';
-    $form['auto_nodetitle']['text']['#markup'] = t('You are not allow the configure the pattern for the title, as you lack the %permission permission.', array('%permission' => t('Use PHP for title patterns')));
-    $form['auto_nodetitle']['text']['#suffix'] = '</p>';
-  }
+
 
   $form['auto_nodetitle']['ant_php'] = array(
     '#access' => user_access('use PHP for title patterns'),

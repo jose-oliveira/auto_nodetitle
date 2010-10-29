@@ -173,19 +173,13 @@ function auto_nodetitle_form_node_type_form_alter(&$form, &$form_state) {
     '#default_value' => variable_get('ant_pattern_' . $form['#node_type']->type, ''),
   );
 
-  // Display the list of available placeholders
-  $tokens = token_info();
-  $tokenlist = "<dl>\n";
-  foreach ($tokens['tokens']['node'] as $key => $info) {
-    $tokenlist .= '<dt>[node:' . check_plain($key) . ']</dt>';
-    $tokenlist .= '<dd>' . check_plain($info['description']) . '</dd>';
+  // Display the list of available placeholders if token module is installed.
+  if (module_exists('token')) {
+    $form['auto_nodetitle']['token_help'] = array(
+      '#theme' => 'token_tree',
+      '#token_types' => array('node'),
+    );
   }
-  $tokenlist .= "</dl>\n";
-  $form['auto_nodetitle']['token_help'] = array(
-    '#type' => 'item',
-    '#title' => t('Replacement patterns'),
-    '#markup' => $tokenlist,
-  );
 
   if (user_access('use PHP for title patterns')) {
     $form['auto_nodetitle']['ant_php'] = array(

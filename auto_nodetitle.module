@@ -80,6 +80,8 @@ function auto_nodetitle_set_title(&$node) {
   else {
     $node->title = t('@type', array('@type' => $types[$node->type]->name));
   }
+  // Ensure the generated title isn't too long.
+  $node->title = substr($node->title, 0, 255);
   // With that flag we ensure we don't apply the title two times to the same node.
   $node->auto_nodetitle_applied = TRUE;
 }

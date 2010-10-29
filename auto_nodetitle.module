@@ -3,7 +3,7 @@
 
 /**
  * @file
- * Allows hiding of the node title field and automatic title creation
+ * Allows hiding of the node title field and automatic title creation.
  */
 
 define('AUTO_NODETITLE_DISABLED', 0);
@@ -18,48 +18,37 @@ function auto_nodetitle_permission() {
     'Use PHP for title patterns' => array(
       'title' => t('Use PHP for title patterns'),
       'description' => t('Use PHP for title patterns.'),
-    )
+      'restrict access' => TRUE,
+    ),
   );
 }
 
 /**
- * Implements hook_form_alter().
+ * Implements hook_form_FORM_ID_alter() for the node form.
  */
-function auto_nodetitle_form_alter(&$form, &$form_state, $form_id) {
-  // If we're editing a content type
-  if (isset($form['#node_type']) && 'node_type_form' == $form_id) {
-    auto_nodetitle_node_settings_form($form);
+function auto_nodetitle_form_node_form_alter(&$form, &$form_state, $form_id) {
+  if (auto_nodetitle_get_setting($form['#node']->type) == AUTO_NODETITLE_ENABLED) {
+    // We will autogenerate the title later, just hide the title field in the
+    // meanwhile.
+    $form['title']['#value'] = 'ant';
+    $form['title']['#type'] = 'value';
+    $form['title']['#required'] = FALSE;
   }
-  // If we're editing a node
-  if (!empty($form['#node_edit_form'])) {
-    if (auto_nodetitle_get_setting($form['#node']->type) == AUTO_NODETITLE_ENABLED) {
-      // we will autogenerate the title later, just hide the title field in the meanwhile
-      $form['title']['#value'] = 'ant';
-      $form['title']['#type'] = 'value';
-      $form['title']['#required'] = FALSE;
-      $form['#submit'][] = 'auto_nodetitle_node_form_submit';
-    }
-    elseif (auto_nodetitle_get_setting($form['#node']->type) == AUTO_NODETITLE_OPTIONAL) {
-      // we will make the title optional
-      $form['title']['#required'] = FALSE;
-      $form['#submit'][] = 'auto_nodetitle_node_form_submit';
-    }
+  elseif (auto_nodetitle_get_setting($form['#node']->type) == AUTO_NODETITLE_OPTIONAL) {
+    $form['title']['#required'] = FALSE;
   }
 }
 
 /**
- * Makes sure the node preview is shown right.
- * It gets the node object, modifies the title, and updates the node in the form_state.
+ * Implements hook_node_submit().
+ *
+ * Generate the node title as soon as the form has been submitted. That way
+ * the node preview is shown right too.
  */
-function auto_nodetitle_node_form_submit($form, &$form_state) {
-  // Only do something, if the user clicked the preview button.
-  if (isset($form_state['clicked_button']['#submit']) && in_array('node_form_build_preview', $form_state['clicked_button']['#submit'])) {
-    $setting = auto_nodetitle_get_setting($form_state['values']['type']);
-    if ($setting == AUTO_NODETITLE_ENABLED || ($setting == AUTO_NODETITLE_OPTIONAL && empty($form_state['values']['title']))) {
-      $node = node_submit($form_state['values']);
-      auto_nodetitle_set_title($node);
-      $form_state['values'] = (array)$node;
-    }
+function auto_nodetitle_node_submit($node, $form, &$form_state) {
+  $setting = auto_nodetitle_get_setting($node->type);
+  if ($setting == AUTO_NODETITLE_ENABLED || ($setting == AUTO_NODETITLE_OPTIONAL && empty($form_state['values']['title']))) {
+    auto_nodetitle_set_title($node);
   }
 }
 
@@ -67,6 +56,7 @@ function auto_nodetitle_node_form_submit($form, &$form_state) {
  * Implements hook_node_presave().
  */
 function auto_nodetitle_node_presave($node) {
+  // If not yet done, generate the title now.
   if (auto_nodetitle_is_needed($node)) {
     auto_nodetitle_set_title($node);
   }
@@ -95,7 +85,10 @@ function auto_nodetitle_set_title(&$node) {
   else {
     $node->title = t('@type', array('@type' => $types[$node->type]->name));
   }
-  // With that flag we ensure we don't apply the title two times to the same node.
+  // Ensure the generated title isn't too long.
+  $node->title = substr($node->title, 0, 255);
+  // With that flag we ensure we don't apply the title two times to the same
+  // node. See auto_nodetitle_is_needed().
   $node->auto_nodetitle_applied = TRUE;
 }
 
@@ -130,26 +123,26 @@ function auto_nodetitle_operations_update($nodes) {
 }
 
 /**
-  * Helper function to generate the title according to the PHP code.
-  * Right now its only a wrapper, but if this is to be expanded, here is the place to be.
+  * Helper function to generate the title according to the settings.
+  *
   * @return a title string
   */
-function _auto_nodetitle_patternprocessor($output, $node) {
-  // Replace tokens
-  $output = token_replace($output, array('node' => $node));
-  // Evalute PHP
+function _auto_nodetitle_patternprocessor($pattern, $node) {
+  // Replace tokens.
+  $output = token_replace($pattern, array('node' => $node, 'sanitize' => FALSE));
+  // Evalute PHP.
   if (variable_get('ant_php_' . $node->type, 0)) {
     $output = auto_nodetitle_eval($output, $node);
   }
-  // Strip tags
+  // Strip tags.
   $output = preg_replace('/[\t\n\r\0\x0B]/', '', strip_tags($output));
   return $output;
 }
 
 /**
-  * Helper function for hook_form_alter() renders the settings per node-type.
-  */
-function auto_nodetitle_node_settings_form(&$form) {
+ * Implements hook_form_FORM_ID_alter() for the node type form.
+ */
+function auto_nodetitle_form_node_type_form_alter(&$form, &$form_state) {
   $default_value = auto_nodetitle_get_setting($form['#node_type']->type);
   $form['auto_nodetitle'] = array(
     '#type' => 'fieldset',
@@ -159,12 +152,11 @@ function auto_nodetitle_node_settings_form(&$form) {
     '#collapsed' => !$default_value,
     '#group' => 'additional_settings',
     '#attached' => array(
-        'js' => array(
-          'auto-nodetitle' => drupal_get_path('module', 'auto_nodetitle') . '/auto_nodetitle.js',
-        ),
+      'js' => array(
+        'auto-nodetitle' => drupal_get_path('module', 'auto_nodetitle') . '/auto_nodetitle.js',
       ),
+    ),
   );
-
   $form['auto_nodetitle']['ant'] = array(
     '#type' => 'radios',
     '#default_value' => $default_value,
@@ -174,7 +166,6 @@ function auto_nodetitle_node_settings_form(&$form) {
       t('Automatically generate the title if the title field is left empty'),
     )
   );
-
   $form['auto_nodetitle']['ant_pattern'] = array(
     '#type' => 'textarea',
     '#title' => t('Pattern for the title'),
@@ -220,7 +211,7 @@ function auto_nodetitle_get_setting($type) {
 }
 
 /**
- * Evaluates php code and passes $node to it
+ * Evaluates php code and passes $node to it.
  */
 function auto_nodetitle_eval($code, $node) {
   ob_start();

@@ -1,4 +1,3 @@
-// $Id$
 (function ($) {
 
 Drupal.behaviors.auto_nodetitleFieldsetSummaries = {

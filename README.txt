@@ -1,4 +1,3 @@
-$Id$
 
 Automatic Nodetitle Module
 ------------------------

@@ -23,10 +23,15 @@ Installation
  * At the top of the content type edit form, there is a "Automatic title
    generation" box allowing you to configure the details for the current content
    type.
- 
- 
- 
- 
+
+
+Note
+-----
+ Due to the way the module works, it is not possible to make use of some replacement
+ tokens that are not available before the content node is saved the first time, e.g.
+ like the node id ([node:nid]).
+
+
  Advanced Use: PHP Code
 ------------------------
  You can access $node from your php code. Look at this simple example, which just adds the node's

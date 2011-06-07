@@ -23,8 +23,16 @@ Installation
  * Copy the module's directory to your modules directory and activate the module.
  * For each content type you want to have an automatic title, configure the
    module at 'admin/structure/types'.
+
+
+Note
+-----
+ Due to the way the module works, it is not possible to make use of some replacement
+ tokens that are not available before the content node is saved the first time, e.g.
+ like the node id ([node:nid]).
+
  
- 
+
  Advanced Use: PHP Code
 ------------------------
  You can access $node from your php code. Look at this simple example, which just adds the node's

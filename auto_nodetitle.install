@@ -9,7 +9,7 @@
  * Implements hook_install().
  */
 function auto_nodetitle_install() {
-  db_query("UPDATE {system} SET weight = 5 WHERE name = 'auto_nodetitle'");
+  module_set_weight('auto_nodetitle', 5);
 }
 
 /**
@@ -17,9 +17,9 @@ function auto_nodetitle_install() {
  */
 function auto_nodetitle_uninstall() {
   foreach (node_type_get_names('names') as $type => $type_name) {
-    variable_del('ant_' . $type);
-    variable_del('ant_pattern_' . $type);
-    variable_del('ant_php_' . $type);
+    \Drupal::config('auto_nodetitle.node.' . $type)->delete();
+    \Drupal::config('auto_nodetitle.pattern.node.' . $type)->delete();
+    \Drupal::config('auto_nodetitle.php.node.' . $type)->delete();
   }
 }
 
@@ -27,7 +27,7 @@ function auto_nodetitle_uninstall() {
  * make sure hooks are invoked after cck main hooks
  */
 function auto_nodetitle_update_1() {
-  $ret = array();
-  $ret[] = update_sql("UPDATE {system} SET weight = 5 WHERE name = 'auto_nodetitle'");
+  $ret   = array();
+  $ret[] = module_set_weight('auto_nodetitle', 5);;
   return $ret;
 }

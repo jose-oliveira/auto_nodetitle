@@ -27,7 +27,7 @@ function auto_nodetitle_uninstall() {
  * make sure hooks are invoked after cck main hooks
  */
 function auto_nodetitle_update_1() {
-  $ret   = array();
+  $ret = array();
   $ret[] = module_set_weight('auto_nodetitle', 5);;
   return $ret;
 }

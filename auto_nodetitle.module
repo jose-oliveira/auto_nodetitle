@@ -14,19 +14,6 @@ define('AUTO_NODETITLE_ENABLED', 1);
 define('AUTO_NODETITLE_OPTIONAL', 2);
 
 /**
- * Implements hook_permission().
- */
-function auto_nodetitle_permission() {
-  return array(
-    'use PHP for title patterns' => array(
-      'title'           => t('Use PHP for title patterns'),
-      'description'     => t('Use PHP for title patterns.'),
-      'restrict access' => TRUE,
-    ),
-  );
-}
-
-/**
  * Implements hook_form_FORM_ID_alter() for the node form.
  */
 function auto_nodetitle_form_node_form_alter(&$form, &$form_state, $form_id) {

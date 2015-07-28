@@ -10,23 +10,21 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\node\NodeTypeInterface;
 use Drupal\Core\Form\FormStateInterface;
 
-const AUTO_NODETITLE_DISABLED = 0;
-const AUTO_NODETITLE_ENABLED = 1;
-const AUTO_NODETITLE_OPTIONAL = 2;
+use Drupal\auto_nodetitle\AutoNodeTitle;
 
 /**
  * Implements hook_form_FORM_ID_alter() for the node form.
  */
 function auto_nodetitle_form_node_form_alter(&$form, FormStateInterface $form_state) {
   $type = $form_state->getFormObject()->getEntity()->getType();
-  if (auto_nodetitle_get_setting($type) == AUTO_NODETITLE_ENABLED) {
+  if (AutoNodeTitle::auto_nodetitle_get_setting($type) == AutoNodeTitle::AUTO_NODETITLE_ENABLED) {
     $widget = &$form['title']['widget'][0];
     // We will autogenerate the title later, just hide the title field in the
     // meanwhile.
     $widget['value']['#type'] = 'hidden';
     $widget['value']['#required'] = FALSE;
   }
-  elseif (auto_nodetitle_get_setting($type) == AUTO_NODETITLE_OPTIONAL) {
+  elseif (AutoNodeTitle::auto_nodetitle_get_setting($type) == AutoNodeTitle::AUTO_NODETITLE_OPTIONAL) {
     $widget = &$form['title']['widget'][0];
     $widget['value']['#required'] = FALSE;
   }
@@ -41,10 +39,10 @@ function auto_nodetitle_form_node_form_alter(&$form, FormStateInterface $form_st
  */
 function auto_nodetitle_form_node_form_submit_preview(&$form, FormStateInterface $form_state) {
   $node = $form_state->getFormObject()->getEntity();
-  $setting = auto_nodetitle_get_setting($node->getType());
+  $setting = AutoNodeTitle::auto_nodetitle_get_setting($node->getType());
   $title = $form_state->getValue('title');
-  if ($setting == AUTO_NODETITLE_ENABLED || ($setting == AUTO_NODETITLE_OPTIONAL && empty($title))) {
-    $new_title = auto_nodetitle_set_title($node);
+  if ($setting == AutoNodeTitle::AUTO_NODETITLE_ENABLED || ($setting == AutoNodeTitle::AUTO_NODETITLE_OPTIONAL && empty($title))) {
+    $new_title = AutoNodeTitle::auto_nodetitle_set_title($node);
     $form_state->setValue('title', array($new_title));
   }
 }
@@ -54,65 +52,9 @@ function auto_nodetitle_form_node_form_submit_preview(&$form, FormStateInterface
  */
 function auto_nodetitle_node_presave(EntityInterface $entity) {
   // If not yet done, generate the title now.
-  if (auto_nodetitle_is_needed($entity)) {
-    auto_nodetitle_set_title($entity);
+  if (AutoNodeTitle::auto_nodetitle_is_needed($entity)) {
+    AutoNodeTitle::auto_nodetitle_set_title($entity);
   }
-}
-
-/**
- * Returns whether the auto nodetitle has to be set.
- */
-function auto_nodetitle_is_needed($node) {
-  $not_applied = empty($node->auto_nodetitle_applied);
-  $setting = auto_nodetitle_get_setting($node->getType());
-  $title = $node->getTitle();
-  $check_optional = $setting && !($setting == AUTO_NODETITLE_OPTIONAL && !empty($title));
-  return $not_applied && $check_optional;
-}
-
-/**
- * Sets the automatically generated nodetitle for the node
- */
-function auto_nodetitle_set_title(&$node) {
-  $types = \Drupal\node\Entity\NodeType::loadMultiple();
-  $type = $node->getType();
-  $title = $node->getTitle();
-  $pattern = \Drupal::config('auto_nodetitle.node.' . $type)
-    ->get('pattern') ?: '';
-  if (trim($pattern)) {
-    $node->changed = REQUEST_TIME;
-    $title = _auto_nodetitle_patternprocessor($pattern, $node);
-  }
-  elseif ($node->nid) {
-    $title = t('@type @node-id', array(
-      '@type' => $types[$type]->get('name'),
-      '@node-id' => $node->nid
-    ));
-  }
-  else {
-    $title = t('@type', array('@type' => $types[$type]->get('name')));
-  }
-  // Ensure the generated title isn't too long.
-  $title = substr($title, 0, 255);
-  $node->set('title', $title);
-  // With that flag we ensure we don't apply the title two times to the same
-  // node. See auto_nodetitle_is_needed().
-  $node->auto_nodetitle_applied = TRUE;
-
-  return $title;
-}
-
-/**
- * Implements hook_node_operations().
- */
-function auto_nodetitle_node_operations() {
-  $operations = array(
-    'nodetitle_update' => array(
-      'label' => t('Update automatic nodetitles'),
-      'callback' => 'auto_nodetitle_operations_update',
-    ),
-  );
-  return $operations;
 }
 
 /**
@@ -121,36 +63,8 @@ function auto_nodetitle_node_operations() {
 function auto_nodetitle_operations_update($nodes) {
   foreach ($nodes as $nid) {
     $node = node_load($nid);
-    if ($node && auto_nodetitle_is_needed($node)) {
-      $previous_title = $node->title;
-      auto_nodetitle_set_title($node);
-      // Only save if the title has actually changed.
-      if ($node->title != $previous_title) {
-        node_save($node);
-      }
-    }
-  }
-}
 
-/**
- * Helper function to generate the title according to the settings.
- *
- * @return a title string
- */
-function _auto_nodetitle_patternprocessor($pattern, $node) {
-  // Replace tokens.
-  $token = Drupal::token();
-  $output = $token->replace($pattern, array('node' => $node), array(
-    'sanitize' => FALSE,
-    'clear' => TRUE
-  ));
-  // Evalute PHP.
-  if (\Drupal::config('auto_nodetitle.node.' . $node->getType())->get('php')) {
-    $output = auto_nodetitle_eval($output, $node);
   }
-  // Strip tags.
-  $output = preg_replace('/[\t\n\r\0\x0B]/', '', strip_tags($output));
-  return $output;
 }
 
 /**
@@ -158,7 +72,7 @@ function _auto_nodetitle_patternprocessor($pattern, $node) {
  */
 function auto_nodetitle_form_node_type_form_alter(&$form, FormStateInterface $form_state) {
   $type = $form['type']['#default_value'];
-  $default_value = auto_nodetitle_get_setting($type);
+  $default_value = AutoNodeTitle::auto_nodetitle_get_setting($type);
   $form['auto_nodetitle'] = array(
     '#type' => 'details',
     '#title' => t('Automatic title generation'),
@@ -228,25 +142,6 @@ function auto_nodetitle_form_node_type_form_submit(&$form, FormStateInterface $f
     $settings->set($config_name, $config_value);
   }
   $settings->save();
-}
-
-/**
- * Gets the auto node title setting associated with the given content type.
- */
-function auto_nodetitle_get_setting($type) {
-  return \Drupal::config('auto_nodetitle.node.' . $type)
-    ->get('status') ?: AUTO_NODETITLE_DISABLED;
-}
-
-/**
- * Evaluates php code and passes $node to it.
- */
-function auto_nodetitle_eval($code, $node) {
-  ob_start();
-  print eval('?>' . $code);
-  $output = ob_get_contents();
-  ob_end_clean();
-  return $output;
 }
 
 /**

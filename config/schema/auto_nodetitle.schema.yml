@@ -13,3 +13,7 @@ auto_nodetitle.node.*:
     pattern:
       type: string
       label: 'The auto node pattern settings'
+
+action.configuration.auto_nodetitle_update_action:
+  type: action_configuration_default
+  label: 'Update automatic nodetitles'

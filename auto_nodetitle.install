@@ -17,9 +17,9 @@ function auto_nodetitle_install() {
  */
 function auto_nodetitle_uninstall() {
   foreach (node_type_get_names('names') as $type => $type_name) {
-    \Drupal::config('auto_nodetitle.node.' . $type)->delete();
-    \Drupal::config('auto_nodetitle.pattern.node.' . $type)->delete();
-    \Drupal::config('auto_nodetitle.php.node.' . $type)->delete();
+    \Drupal::configFactory()->getEditable('auto_nodetitle.node.' . $type)->delete();
+    \Drupal::configFactory()->getEditable('auto_nodetitle.pattern.node.' . $type)->delete();
+    \Drupal::configFactory()->getEditable('auto_nodetitle.php.node.' . $type)->delete();
   }
 }
 

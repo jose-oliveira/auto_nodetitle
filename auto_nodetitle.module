@@ -167,11 +167,10 @@ function auto_nodetitle_node_type_update(NodeTypeInterface $type) {
     $original_config->delete();
   }
 }
-/**
- * @file
- * Contains menu_link_placeholder.module.
- */
 
+/**
+ * Implements hook_entity_base_field_info_alter().
+ */
 function auto_nodetitle_entity_base_field_info_alter(&$fields, \Drupal\Core\Entity\EntityTypeInterface $entity_type) {
   if ($entity_type->id() == 'node') {
     $fields['title']->setRequired(FALSE);

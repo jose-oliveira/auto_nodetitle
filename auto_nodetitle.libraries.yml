@@ -1,3 +1,6 @@
-auto_nodetitle.auto_node_title:
+auto_node_title:
+  version: VERSION
   js:
     js/auto_nodetitle.js: {}
+  dependencies:
+    - core/jquery

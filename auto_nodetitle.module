@@ -103,7 +103,7 @@ function auto_nodetitle_form_node_type_form_alter(&$form, FormStateInterface $fo
 
   // Display the list of available placeholders if token module is installed.
   if (Drupal::moduleHandler()->moduleExists('token')) {
-    $form['auto_nodetitle']['token_helpt  '] = array(
+    $form['auto_nodetitle']['token_help'] = array(
       '#theme' => 'token_tree_link',
       '#token_types' => array('site'),
     );

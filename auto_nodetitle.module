@@ -103,9 +103,14 @@ function auto_nodetitle_form_node_type_form_alter(&$form, FormStateInterface $fo
 
   // Display the list of available placeholders if token module is installed.
   if (Drupal::moduleHandler()->moduleExists('token')) {
-    $form['auto_nodetitle']['token_help'] = array(
-      '#theme' => 'token_tree',
-      '#token_types' => array('node'),
+    $form['auto_nodetitle']['token_helpt  '] = array(
+      '#theme' => 'token_tree_link',
+      '#token_types' => array('site'),
+    );
+  }
+  else {
+    $form['token_tree'] = array(
+      '#markup' => '<p>' . t('Enable the <a href="@drupal-token">Token module</a> to view the available token browser.', array('@drupal-token' => 'http://drupal.org/project/token')) . '</p>',
     );
   }
 

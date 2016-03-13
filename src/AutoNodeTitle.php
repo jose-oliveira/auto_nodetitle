@@ -64,7 +64,7 @@ class AutoNodeTitle {
    *
    * @return a title string
    */
-  protected function _auto_nodetitle_patternprocessor($pattern, $node) {
+  protected static function _auto_nodetitle_patternprocessor($pattern, $node) {
     // Replace tokens.
     $token = \Drupal::token();
     $output = $token->replace($pattern, array('node' => $node), array(

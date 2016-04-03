@@ -1,0 +1,4 @@
+services:
+  auto_nodetitle.generator:
+    class: Drupal\auto_nodetitle\TitleGenerator
+    arguments: ['@config.factory', '@entity_type.manager', '@token']

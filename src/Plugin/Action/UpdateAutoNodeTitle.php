@@ -7,7 +7,7 @@
 
 namespace Drupal\auto_nodetitle\Plugin\Action;
 
-use Drupal\auto_nodetitle\TitleGenerator;
+use Drupal\auto_nodetitle\AutoTitle;
 use Drupal\Core\Action\ActionBase;
 use Drupal\Core\Session\AccountInterface;
 
@@ -22,16 +22,16 @@ use Drupal\Core\Session\AccountInterface;
  */
 class UpdateAutoNodeTitle extends ActionBase {
 
-  // @todo DI for TitleGenerator
+  // @todo DI for AutoTitle
   
   /**
    * {@inheritdoc}
    */
   public function execute($entity = NULL) {
 
-    if ($entity && $this->title_generator->auto_nodetitle_is_needed($entity)) {
+    if ($entity && $this->auto_title->autoTitleNeeded($entity)) {
       $previous_title = $entity->getTitle();
-      $this->title_generator->setTitle($entity);
+      $this->auto_title->setTitle($entity);
       // Only save if the title has actually changed.
       if ($entity->getTitle() != $previous_title) {
         $entity->save();

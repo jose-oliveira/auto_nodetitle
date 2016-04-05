@@ -70,7 +70,7 @@ function auto_nodetitle_form_node_type_form_alter(&$form, FormStateInterface $fo
     '#group' => 'additional_settings',
     '#tree' => TRUE,
     '#attached' => array(
-      'library' => array('auto_nodetitle.auto_node_title'),
+      'library' => array('auto_nodetitle/auto_nodetitle.auto_node_title'),
     ),
   );
   $form['auto_nodetitle']['status'] = array(

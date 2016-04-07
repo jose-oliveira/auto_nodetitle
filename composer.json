@@ -2,15 +2,15 @@
   "name": "drupal/auto_nodetitle",
   "description": "Admin Toolbar improve the default Drupal Toolbar, it lets the hover of sub menus.",
   "type": "drupal-module",
-  "homepage": "http://drupal.org/project/admin_toolbar",
+  "homepage": "http://drupal.org/project/auto_nodetitle",
   "authors": [
     {
-      "name": "Mohamed Anis Taktak",
-      "homepage": "https://www.drupal.org/u/matio89"
+      "name": "",
+      "homepage": "https://www.drupal.org"
     }
   ],
   "support": {
-    "issues": "https://www.drupal.org/project/issues/admin_toolbar"
+    "issues": "https://www.drupal.org/project/issues/auto_nodetitle"
   },
   "license": "GPL-2.0+",
   "require": { }

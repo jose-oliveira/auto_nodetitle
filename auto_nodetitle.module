@@ -17,16 +17,18 @@ use Drupal\auto_nodetitle\AutoNodeTitle;
  */
 function auto_nodetitle_form_node_form_alter(&$form, FormStateInterface $form_state) {
   $type = $form_state->getFormObject()->getEntity()->getType();
+  $widget = &$form['title']['widget'][0];
   if (AutoNodeTitle::auto_nodetitle_get_setting($type) == AutoNodeTitle::AUTO_NODETITLE_ENABLED) {
-    $widget = &$form['title']['widget'][0];
     // We will autogenerate the title later, just hide the title field in the
     // meanwhile.
-    $widget['value']['#type'] = 'hidden';
+    $widget['value']['#type'] = 'value';
     $widget['value']['#required'] = FALSE;
   }
   elseif (AutoNodeTitle::auto_nodetitle_get_setting($type) == AutoNodeTitle::AUTO_NODETITLE_OPTIONAL) {
-    $widget = &$form['title']['widget'][0];
     $widget['value']['#required'] = FALSE;
+  }
+  else {
+    $widget['value']['#required'] = TRUE;
   }
 
   //For this to work it needs to be after the preview callback and before the submit callback.
@@ -70,7 +72,7 @@ function auto_nodetitle_form_node_type_form_alter(&$form, FormStateInterface $fo
     '#group' => 'additional_settings',
     '#tree' => TRUE,
     '#attached' => array(
-      'library' => array('auto_nodetitle.auto_node_title'),
+      'library' => array('auto_nodetitle/auto_node_title'),
     ),
   );
   $form['auto_nodetitle']['status'] = array(
@@ -102,8 +104,13 @@ function auto_nodetitle_form_node_type_form_alter(&$form, FormStateInterface $fo
   // Display the list of available placeholders if token module is installed.
   if (Drupal::moduleHandler()->moduleExists('token')) {
     $form['auto_nodetitle']['token_help'] = array(
-      '#theme' => 'token_tree',
-      '#token_types' => array('node'),
+      '#theme' => 'token_tree_link',
+      '#token_types' => array('site'),
+    );
+  }
+  else {
+    $form['token_tree'] = array(
+      '#markup' => '<p>' . t('Enable the <a href="@drupal-token">Token module</a> to view the available token browser.', array('@drupal-token' => 'http://drupal.org/project/token')) . '</p>',
     );
   }
 
@@ -163,5 +170,14 @@ function auto_nodetitle_node_type_update(NodeTypeInterface $type) {
       ->set('php', $original_config->get('php') ?: '')
       ->save();
     $original_config->delete();
+  }
+}
+
+/**
+ * Implements hook_entity_base_field_info_alter().
+ */
+function auto_nodetitle_entity_base_field_info_alter(&$fields, \Drupal\Core\Entity\EntityTypeInterface $entity_type) {
+  if ($entity_type->id() == 'node') {
+    $fields['title']->setRequired(FALSE);
   }
 }

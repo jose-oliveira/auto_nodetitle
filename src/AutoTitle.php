@@ -11,9 +11,9 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Utility\Token;
 
 /**
- * Provides the automatic title generation functionality.
+ * Provides the automatic title generation service.
  */
-class AutoTitle {
+class AutoTitle implements AutoTitleInterface {
 
   /**
    * Automatic title is disabled.
@@ -76,91 +76,63 @@ class AutoTitle {
   }
 
   /**
-   * Sets the automatically generated title for the entity.
-   *
-   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
-   *   Content entity.
-   *
-   * @return string
-   *   The applied title. The entity is also updated with this title.
+   * {@inheritdoc}
    */
   public function setTitle($entity) {
+    $title = '';
 
     $entity_type = $entity->getEntityType()->id();
-    $entity->bundle();
-    $bundle = $entity->bundle();
-    /** @var \Drupal\node\Entity\NodeType $node_type */
-    // @todo
-    $node_type = $this->entityTypeManager->getStorage('node_type')->load($bundle);
+    $title_field = $this->getEntityTitle($entity);
 
-    $pattern = $this->getConfig($entity_type, $bundle)->get('pattern') ?: '';
-    if (trim($pattern)) {
-      $entity->changed = REQUEST_TIME;
-      $title = $this->generateTitle($pattern, $entity);
-    }
-    elseif ($entity->id()) {
-      $title = t('@type @id', array(
-        '@type' => $node_type->label(),
-        '@id' => $entity->id(),
-      ));
-    }
-    else {
-      $title = t('@type', array('@type' => $node_type->label()));
-    }
+    if ($title_field) {
+      $entity->bundle();
+      $bundle = $entity->bundle();
+      $pattern = $this->getConfig($entity_type, $bundle)->get('pattern') ?: '';
 
-    // Ensure the generated title isn't too long.
-    $title = substr($title, 0, 255);
-    $entity->title->setValue($title);
+      if (trim($pattern)) {
+        $title = $this->generateTitle($pattern, $entity);
+      }
+      else {
+        $content_type = $this->getBundleLabel($entity);
+        if ($entity->id()) {
+          $title = t('@type @id', array(
+            '@type' => $content_type,
+            '@id' => $entity->id(),
+          ));
+        }
+        else {
+          $title = $content_type;
+        }
+      }
 
-    // @todo This sets a public property. This is no good architecture.
-    // With that flag we ensure we don't apply the title two times to the same
-    // node. See autoTitleNeeded().
-    $entity->auto_title_applied = TRUE;
+      // Ensure the generated title isn't too long.
+      $title = substr($title, 0, 255);
+      $entity->$title_field->setValue($title);
+
+      // @todo This sets a public property. This is no good architecture.
+      // This flag ensures we don't apply the title twice. See autoTitleNeeded().
+      $entity->auto_title_applied = TRUE;
+    }
 
     return $title;
   }
 
   /**
-   * Determines if the entity bundle has auto title enabled.
-   *
-   * @param string $entity_type
-   *   The machine readable name of the entity.
-   * @param string $bundle
-   *   Bundle machine name.
-   *
-   * @return bool
-   *   True if the entity bundle has an automatic title.
+   * {@inheritdoc}
    */
   public function hasAutoTitle($entity_type, $bundle) {
     return $this->getConfig($entity_type, $bundle)->get('status') == self::ENABLED;
   }
 
   /**
-   * Determines if the entity bundle has an optional auto title.
-   *
-   * Optional means that if the title is empty, it will be automatically
-   * generated.
-   *
-   * @param string $entity_type
-   *   The machine readable name of the entity.
-   * @param string $bundle
-   *   Bundle machine name.
-   *
-   * @return bool
-   *   True if the entity bundle has an optional automatic title.
+   * {@inheritdoc}
    */
   public function hasOptionalAutoTitle($entity_type, $bundle) {
     return $this->getConfig($entity_type, $bundle)->get('status') == self::OPTIONAL;
   }
 
   /**
-   * Returns whether the automatic title has to be set.
-   *
-   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
-   *   Content entity.
-   *
-   * @return bool
-   *   Returns true if the title
+   * {@inheritdoc}
    */
   public function autoTitleNeeded($entity) {
     $not_applied = empty($entity->auto_title_applied);
@@ -169,6 +141,59 @@ class AutoTitle {
     $required = $this->hasAutoTitle($entity_type, $bundle);
     $optional = $this->hasOptionalAutoTitle($entity_type, $bundle) && empty($entity->getTitle());
     return $not_applied && ($required || $optional);
+  }
+
+  /**
+   * Gets the field name of the entity title (label).
+   *
+   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+   *   Content entity.
+   *
+   * @return string
+   *   The entity title field name.
+   */
+  protected function getEntityTitle($entity) {
+    $label_field = '';
+
+    $definition = $this->entityTypeManager->getDefinition($entity->getEntityTypeId());
+    if ($definition->hasKey('label')) {
+      $label_field = $definition->getKey('label');
+    }
+
+    return $label_field;
+  }
+
+  /**
+   * Gets the entity bundle label or the entity label.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+   *   Content entity.
+   *
+   * @return string
+   *   The bundle label.
+   */
+  protected function getBundleLabel($entity) {
+    $entity_type = $entity->getEntityTypeId();
+    $bundle = $entity->bundle();
+
+    // Use the the human readable name of the bundle type. If this entity has no
+    // bundle, we use the name of the content entity type.
+    if ($bundle != $entity_type) {
+      $bundle_entity_type = $this->entityTypeManager
+        ->getDefinition($entity_type)
+        ->getBundleEntityType();
+      $label = $this->entityTypeManager
+        ->getStorage($bundle_entity_type)
+        ->load($bundle)
+        ->label();
+    }
+    else {
+      $label = $this->entityTypeManager
+        ->getDefinition($entity_type)
+        ->getLabel();
+    }
+
+    return $label;
   }
 
   /**
@@ -183,7 +208,6 @@ class AutoTitle {
    *   A title string
    */
   protected function generateTitle($pattern, $entity) {
-    // Replace tokens.
     $entity_type = $entity->getEntityType()->id();
     $output = $this->token
         ->replace($pattern, array($entity_type => $entity), array(
@@ -233,7 +257,7 @@ class AutoTitle {
    * @return string
    *   String to use as title.
    */
-  public static function evalTitle($code, $entity) {
+  protected function evalTitle($code, $entity) {
     ob_start();
     print eval('?>' . $code);
     $output = ob_get_contents();

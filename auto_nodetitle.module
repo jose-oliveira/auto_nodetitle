@@ -18,14 +18,14 @@ function auto_nodetitle_form_node_form_alter(&$form, FormStateInterface $form_st
   /** @var \Drupal\auto_nodetitle\AutoTitle $auto_title */
   $auto_title = \Drupal::service('auto_nodetitle.auto_title');
   $type = $form_state->getFormObject()->getEntity()->getType();
-  if ($auto_title->hasAutoTitle($type)) {
+  if ($auto_title->hasAutoTitle('node', $type)) {
     $widget = &$form['title']['widget'][0];
     // We will autogenerate the title later, just hide the title field in the
     // meanwhile.
     $widget['value']['#type'] = 'hidden';
     $widget['value']['#required'] = FALSE;
   }
-  elseif ($auto_title->hasOptionalAutoTitle($type)) {
+  elseif ($auto_title->hasOptionalAutoTitle('node', $type)) {
     $widget = &$form['title']['widget'][0];
     $widget['value']['#required'] = FALSE;
   }

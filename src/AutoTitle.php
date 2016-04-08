@@ -16,17 +16,17 @@ use Drupal\Core\Utility\Token;
 class AutoTitle {
 
   /**
-   * Automatic node title is disabled.
+   * Automatic title is disabled.
    */
   const DISABLED = 0;
 
   /**
-   * Automatic node title is enabled. Will always be generated.
+   * Automatic title is enabled. Will always be generated.
    */
   const ENABLED = 1;
 
   /**
-   * Automatic node title is optional. Will only be generated if no title was
+   * Automatic title is optional. Will only be generated if no title was
    * given.
    */
   const OPTIONAL = 2;
@@ -53,14 +53,14 @@ class AutoTitle {
   protected $token;
 
   /**
-   * Auto node title configuration per content type.
+   * Auto title configuration per entity.
    *
    * @var array
    */
   protected $config;
 
   /**
-   * Constructs an AutoNodeTitle object.
+   * Constructs an AutoTitle object.
    *
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   Configuration factory.
@@ -76,29 +76,32 @@ class AutoTitle {
   }
 
   /**
-   * Sets the automatically generated nodetitle for the node.
+   * Sets the automatically generated title for the entity.
    *
-   * @param \Drupal\node\Entity\Node $node
-   *   Node object.
+   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+   *   Content entity.
    *
    * @return string
-   *   The applied node title. The node object is also updated with this title.
+   *   The applied title. The entity is also updated with this title.
    */
-  public function setTitle($node) {
-    
-    $type = $node->getType();
-    /** @var \Drupal\node\Entity\NodeType $node_type */
-    $node_type = $this->entityTypeManager->getStorage('node_type')->load($type);
+  public function setTitle($entity) {
 
-    $pattern = $this->getConfig($type)->get('pattern') ?: '';
+    $entity_type = $entity->getEntityType()->id();
+    $entity->bundle();
+    $bundle = $entity->bundle();
+    /** @var \Drupal\node\Entity\NodeType $node_type */
+    // @todo
+    $node_type = $this->entityTypeManager->getStorage('node_type')->load($bundle);
+
+    $pattern = $this->getConfig($entity_type, $bundle)->get('pattern') ?: '';
     if (trim($pattern)) {
-      $node->changed = REQUEST_TIME;
-      $title = $this->generateTitle($pattern, $node);
+      $entity->changed = REQUEST_TIME;
+      $title = $this->generateTitle($pattern, $entity);
     }
-    elseif ($node->id()) {
-      $title = t('@type @node-id', array(
+    elseif ($entity->id()) {
+      $title = t('@type @id', array(
         '@type' => $node_type->label(),
-        '@node-id' => $node->id(),
+        '@id' => $entity->id(),
       ));
     }
     else {
@@ -107,59 +110,64 @@ class AutoTitle {
 
     // Ensure the generated title isn't too long.
     $title = substr($title, 0, 255);
-    $node->title->setValue($title);
+    $entity->title->setValue($title);
 
     // @todo This sets a public property. This is no good architecture.
     // With that flag we ensure we don't apply the title two times to the same
     // node. See autoTitleNeeded().
-    $node->auto_nodetitle_applied = TRUE;
+    $entity->auto_title_applied = TRUE;
 
     return $title;
   }
 
   /**
-   * Determines if the node type has auto node title enabled.
+   * Determines if the entity bundle has auto title enabled.
    *
-   * @param string $type
-   *   Node type.
+   * @param string $entity_type
+   *   The machine readable name of the entity.
+   * @param string $bundle
+   *   Bundle machine name.
    *
    * @return bool
-   *   True if the node type has an automatic node title.
+   *   True if the entity bundle has an automatic title.
    */
-  public function hasAutoTitle($type) {
-    return $this->getConfig($type)->get('status') == self::ENABLED;
+  public function hasAutoTitle($entity_type, $bundle) {
+    return $this->getConfig($entity_type, $bundle)->get('status') == self::ENABLED;
   }
 
   /**
-   * Determines if the node type has an optional auto node title.
+   * Determines if the entity bundle has an optional auto title.
    *
-   * Optional means that if the node title is empty, it will be automatically
-   * filled.
+   * Optional means that if the title is empty, it will be automatically
+   * generated.
    *
-   * @param string $type
-   *   Node type.
+   * @param string $entity_type
+   *   The machine readable name of the entity.
+   * @param string $bundle
+   *   Bundle machine name.
    *
    * @return bool
-   *   True if the node type has an optional automatic node title.
+   *   True if the entity bundle has an optional automatic title.
    */
-  public function hasOptionalAutoTitle($type) {
-    return $this->getConfig($type)->get('status') == self::OPTIONAL;
+  public function hasOptionalAutoTitle($entity_type, $bundle) {
+    return $this->getConfig($entity_type, $bundle)->get('status') == self::OPTIONAL;
   }
 
   /**
    * Returns whether the automatic title has to be set.
    *
-   * @param \Drupal\node\Entity\Node $node
-   *   Node object.
+   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+   *   Content entity.
    *
    * @return bool
    *   Returns true if the title
    */
-  public function autoTitleNeeded($node) {
-    $not_applied = empty($node->auto_nodetitle_applied);
-    $type = $node->getType();
-    $required = $this->hasAutoTitle($type);
-    $optional = $this->hasOptionalAutoTitle($type) && empty($node->getTitle());
+  public function autoTitleNeeded($entity) {
+    $not_applied = empty($entity->auto_title_applied);
+    $entity_type = $entity->getEntityType()->id();
+    $bundle = $entity->bundle();
+    $required = $this->hasAutoTitle($entity_type, $bundle);
+    $optional = $this->hasOptionalAutoTitle($entity_type, $bundle) && empty($entity->getTitle());
     return $not_applied && ($required || $optional);
   }
 
@@ -167,24 +175,27 @@ class AutoTitle {
    * Helper function to generate the title according to the settings.
    *
    * @param string $pattern
-   *   Node title pattern. May contain tokens.
-   * @param \Drupal\node\Entity\Node $node
-   *   Node object.
+   *   Title pattern. May contain tokens.
+   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+   *   Content entity.
    *
    * @return string
    *   A title string
    */
-  protected function generateTitle($pattern, $node) {
+  protected function generateTitle($pattern, $entity) {
     // Replace tokens.
+    $entity_type = $entity->getEntityType()->id();
     $output = $this->token
-        ->replace($pattern, array('node' => $node), array(
+        ->replace($pattern, array($entity_type => $entity), array(
         'sanitize' => FALSE,
         'clear' => TRUE
       ));
 
-    // Evalute PHP.
-    if ($this->getConfig($node->getType())->get('php')) {
-      $output = $this->evalTitle($output, $node);
+    // Evaluate PHP.
+    $entity_type = $entity->getEntityType()->id();
+    $bundle = $entity->bundle();
+    if ($this->getConfig($entity_type, $bundle)->get('php')) {
+      $output = $this->evalTitle($output, $entity);
     }
     // Strip tags.
     $output = preg_replace('/[\t\n\r\0\x0B]/', '', strip_tags($output));
@@ -193,33 +204,36 @@ class AutoTitle {
   }
 
   /**
-   * Returns the auto node title configuration of a content type.
+   * Returns the automatic title configuration of a content entity bundle.
    *
-   * @param string $type
-   *   Content type for which to get the configuration. 
+   * @param string $entity_type
+   *   The machine readable name of the entity.
+   * @param string $bundle
+   *   Content entity bundle for which to get the configuration.
    *
    * @return \Drupal\Core\Config\ImmutableConfig
    */
-  protected function getConfig($type) {
-    if (!isset($this->config[$type])) {
-      $this->config[$type] = $this->configFactory->get('auto_nodetitle.node.' . $type);
+  protected function getConfig($entity_type, $bundle) {
+    $key = "$entity_type.$bundle";
+    if (!isset($this->config[$key])) {
+      $this->config[$key] = $this->configFactory->get('auto_nodetitle.' . $key);
     }
 
-    return $this->config[$type];
+    return $this->config[$key];
   }
 
   /**
-   * Evaluates php code and passes $node to it.
+   * Evaluates php code and passes the entity to it.
    *
    * @param $code
-   *   PHP code.
-   * @param \Drupal\node\Entity\Node $node
-   *   Node object.
+   *   PHP code to evaluate.
+   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+   *   Content entity to pass through to the PHP script.
    *
    * @return string
-   *   String to use as node title.
+   *   String to use as title.
    */
-  public static function evalTitle($code, $node) {
+  public static function evalTitle($code, $entity) {
     ob_start();
     print eval('?>' . $code);
     $output = ob_get_contents();

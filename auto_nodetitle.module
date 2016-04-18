@@ -14,23 +14,24 @@ use Drupal\Core\Form\FormStateInterface;
  * Implements hook_form_FORM_ID_alter() for the node form.
  */
 function auto_nodetitle_form_node_form_alter(&$form, FormStateInterface $form_state) {
+  $decorator = \Drupal::service('auto_nodetitle.enity_decorator');
+  /** @var \Drupal\auto_nodetitle\AutoTitle $decorated_node */
+  $decorated_node = $decorator->decorate($form_state->getFormObject()->getEntity());
 
-  /** @var \Drupal\auto_nodetitle\AutoTitle $auto_title */
-  $auto_title = \Drupal::service('auto_nodetitle.auto_title');
-  $type = $form_state->getFormObject()->getEntity()->getType();
-  if ($auto_title->hasAutoTitle('node', $type)) {
+  if ($decorated_node->hasAutoTitle()) {
     $widget = &$form['title']['widget'][0];
     // We will autogenerate the title later, just hide the title field in the
     // meanwhile.
     $widget['value']['#type'] = 'hidden';
     $widget['value']['#required'] = FALSE;
   }
-  elseif ($auto_title->hasOptionalAutoTitle('node', $type)) {
+  elseif ($decorated_node->hasOptionalAutoTitle()) {
     $widget = &$form['title']['widget'][0];
     $widget['value']['#required'] = FALSE;
   }
 
-  //For this to work it needs to be after the preview callback and before the submit callback.
+  // For this to work it needs to be after the preview callback and before the
+  // submit callback.
   array_splice($form['actions']['preview']['#submit'], 1, 0, 'auto_nodetitle_form_node_form_submit_preview');
 }
 
@@ -39,14 +40,12 @@ function auto_nodetitle_form_node_form_alter(&$form, FormStateInterface $form_st
  * Show the new title in the preview page.
  */
 function auto_nodetitle_form_node_form_submit_preview(&$form, FormStateInterface $form_state) {
-  $auto_title = \Drupal::service('auto_nodetitle.auto_title');
-  $node = $form_state->getFormObject()->getEntity();
-  $type = $node->getType();
+  $decorator = \Drupal::service('auto_nodetitle.enity_decorator');
+  /** @var \Drupal\auto_nodetitle\AutoTitle $decorated_node */
+  $decorated_node = $decorator->decorate($form_state->getFormObject()->getEntity());
 
-  $title = $form_state->getValue('title');
-  if ($auto_title->hasAutoTitle($type) || ($auto_title->hasOptionalAutoTitle($type) && empty($title))) {
-    $new_title = $auto_title->setTitle($node);
-    $form_state->setValue('title', array($new_title));
+  if ($decorated_node->hasTitle() && $decorated_node->autoTitleNeeded()) {
+    $decorated_node->setTitle();
   }
 }
 
@@ -54,10 +53,12 @@ function auto_nodetitle_form_node_form_submit_preview(&$form, FormStateInterface
  * Implements hook_ENTITY_TYPE_presave().
  */
 function auto_nodetitle_node_presave(EntityInterface $entity) {
-  $auto_title = \Drupal::service('auto_nodetitle.auto_title');
-  // If not yet done, generate the title now.
-  if ($auto_title->autoTitleNeeded($entity)) {
-    $auto_title->setTitle($entity);
+  $decorator = \Drupal::service('auto_nodetitle.enity_decorator');
+  /** @var \Drupal\auto_nodetitle\AutoTitle $decorated_node */
+  $decorated_node = $decorator->decorate($entity);
+
+  if ($decorated_node->hasTitle() && $decorated_node->autoTitleNeeded()) {
+    $decorated_node->setTitle();
   }
 }
 

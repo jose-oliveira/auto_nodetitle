@@ -1,4 +1,4 @@
 services:
-  auto_nodetitle.auto_title:
-    class: Drupal\auto_nodetitle\autoTitle
+  auto_nodetitle.enity_decorator:
+    class: Drupal\auto_nodetitle\EntityDecorator
     arguments: ['@config.factory', '@entity_type.manager', '@token']
